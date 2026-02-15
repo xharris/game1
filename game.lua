@@ -1,5 +1,3 @@
-
-
 return {
     maze = {
         trap_count = 2,
@@ -9,6 +7,10 @@ return {
         2: exits/entrance(s)
         3: trap (auto-placed)
         ]]
+        tile_colors = {
+            '#ffffff', -- ground
+            '#03a9f4', -- entrance/exit
+        },
         tiles = {
             0, 1, 1, 1, 2,
             2, 0, 1, 0, 0,

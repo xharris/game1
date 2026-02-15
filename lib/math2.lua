@@ -12,6 +12,7 @@ local M = {}
 local weakkeytable = require 'lib.weakkeytable'
 
 local floor = math.floor
+local abs = math.abs
 
 ---@type Transform
 M.default_xform = {r=0, ox=0, oy=0, sx=0, sy=0, kx=0, ky=0}
@@ -110,6 +111,15 @@ M.steer = function(vel, move, max_speed, mass)
 
     -- var steer = (scaled_desired_velocity - velocity) / mass
     return vel + steer
+end
+
+---numbers are equal approx
+---@param a number
+---@param b number
+---@param epsilon? number
+M.eq = function (a, b, epsilon)
+    epsilon = epsilon or 0.01
+    return abs(a - b) < 0.01
 end
 
 return M

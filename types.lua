@@ -1,4 +1,3 @@
-
 ---@class State
 ---@field load? fun()
 ---@field update? fun(dt:number)

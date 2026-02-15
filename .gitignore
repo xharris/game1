@@ -2,6 +2,7 @@ build/
 bin/
 *.o
 logs.txt
+game.json
 raylib/
 .DS_Store
 test_results.txt

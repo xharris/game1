@@ -580,7 +580,7 @@ local serialize_map = {
   [ "boolean" ] = tostring,
   [ "nil"     ] = tostring,
   [ "userdata"] = tostring,
-  [ "string"  ] = function(v) return string.format("%s", v) end,
+  [ "string"  ] = function(v) return string.format("\"%s\"", v) end,
   [ "number"  ] = function(v)
     if      v ~=  v     then return  "0/0"      --  nan
     elseif  v ==  1 / 0 then return  "1/0"      --  inf
@@ -592,11 +592,21 @@ local serialize_map = {
     if stk[t] then return "CIRCULAR_REF" end -- error("circular reference") end
     local rtn = {}
     stk[t] = true
+    local array = false
     for k, v in pairs(t) do
-      rtn[#rtn + 1] = "" .. serialize(k, stk) .. ":" .. serialize(v, stk)
+      if type(k) == "number" then
+        array = true
+        rtn[#rtn + 1] = serialize(v, stk)
+      else
+        rtn[#rtn + 1] = "" .. serialize(k, stk) .. ":" .. serialize(v, stk)
+      end
     end
     stk[t] = nil
-    return "{" .. table.concat(rtn, ",") .. "}"
+    if array then
+      return "[" .. table.concat(rtn, ",") .. "]"
+    else
+      return "{" .. table.concat(rtn, ",") .. "}"
+    end
   end
 }
 

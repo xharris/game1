@@ -1,6 +1,7 @@
 io.stdout:setvbuf("no")
 math.random = love.math.random
 
+local json = require 'lib.json'
 log = require 'lib.log'
 lume = require 'lib.lume'
 log.serialize = lume.serialize
@@ -34,7 +35,9 @@ function love.draw()
 end
 
 local function error_printer(msg, layer)
-	return (debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", ""))
+	msg =  (debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", ""))
+    msg = msg .. '\n---\n' .. lume.serialize(game) .. '\n---\n'
+    return msg
 end
 
 function love.errorhandler(msg)
