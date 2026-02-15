@@ -24,22 +24,26 @@ return {
         ---@type number[] tile index
         exits = {},
     },
-    players = {
+    actors = {
         {
+            player = 1,
             pos = vec2(),
             vel = vec2(),
             move_dir = vec2(),
             max_move_speed = 200,
             mass = 10,
-        }
-    },
-    enemies = {
+            hp = 1,
+        },
         {
+            enemy = true,
             pos = vec2(),
             vel = vec2(),
             move_dir = vec2(),
             max_move_speed = 200,
             mass = 10,
+            map_path = {},
+            hp = 1,
+            -- tile_path pathing in tile grid
         }
     },
     traps = {'poison_gas'}

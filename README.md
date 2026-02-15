@@ -5,15 +5,19 @@
 - [x] create maze
 - [x] add entrance/exit/enemy/item/trap locations
 - [x] spawn player(s) at entrance
-- player cannot walk outside path
+- [x] player cannot walk outside path
 - enemies
-  - chase player
   - kills player on contact
   - shoots killing projectile at player
 - items
 - traps
 - exit win
 - lighting
+- enemy ai
+  - chase player
+    - know player tile index for X sec (chase timer)
+    - having line of sight refreshes duration
+    - when within same tile, use tile_path instead of map_path
 
 **Goal** exit the maze
 
