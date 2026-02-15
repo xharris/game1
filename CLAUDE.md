@@ -1,0 +1,2 @@
+- The goal and tasks of this project is outlined in `README.md`
+- Logs are printed to `logs.txt`

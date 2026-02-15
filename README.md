@@ -1,23 +1,6 @@
 # Game 1: Maze Dungeon
 
-**TODO**
-
-- [x] create maze
-- [x] add entrance/exit/enemy/item/trap locations
-- [x] spawn player(s) at entrance
-- [x] player cannot walk outside path
-- enemies
-  - kills player on contact
-  - shoots killing projectile at player
-- items
-- traps
-- exit win
-- lighting
-- enemy ai
-  - chase player
-    - know player tile index for X sec (chase timer)
-    - having line of sight refreshes duration
-    - when within same tile, use tile_path instead of map_path
+## Plan
 
 **Goal** exit the maze
 
@@ -51,6 +34,37 @@
 - Events
   - Water (pushes everything)
 
-## Puzzles
+## TODO prototype
 
-- Key + Chest
+- [x] create maze
+- [x] add entrance/exit/enemy/item/trap locations
+- [x] spawn player(s) at entrance
+- [x] player cannot walk outside path
+- [x] enemies
+  - [x] kills player on contact
+- items
+  - spawn at random tiles
+  - collide to pick up
+  - press ... to drop item
+  - sword
+    - press ... to swing
+    - deals 5 dmg
+- exit to win
+- lighting
+- enemy ai
+  - chase player
+    - know player tile index for X sec (chase timer)
+    - having line of sight refreshes duration
+    - when within same tile, use tile_path instead of map_path
+- traps
+  - poison gas
+    - triggered by pressure plate
+    - fills tile quickly
+    - fills neighboring tile
+    - up to X times
+
+## After prototyping
+
+- enemies
+- traps
+- puzzles

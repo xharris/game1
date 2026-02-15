@@ -2,3 +2,17 @@
 ---@field load? fun()
 ---@field update? fun(dt:number)
 ---@field draw? fun()
+
+---@class Actor
+---@field player? number
+---@field pos Vector.lua
+---@field vel Vector.lua
+---@field move_dir Vector.lua
+---@field max_move_speed number
+---@field mass number
+---@field hp number
+---@field dmg? number deal damage on collision
+---@field enemy? string
+---@field map_path? {x:number, y:number}[]
+---@field tile_path? {x:number, y:number}[]
+---@field start_tile? number tile index this actor spawned at, if they used an entrance

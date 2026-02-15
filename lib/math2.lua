@@ -27,10 +27,10 @@ M.move_direction = function (r, dist)
     return math.sin(r) * dist, math.cos(r) * dist
 end
 
----@type table<Entity, love.Transform>
+---@type table<Actor, love.Transform>
 local transforms = weakkeytable()
 
----@param e Entity
+---@param e Actor
 local get_transform = function (e)
     local xform = transforms[e]
     if not xform then

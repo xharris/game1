@@ -5,6 +5,8 @@ local input = require 'input'
 local assets = require 'assets'
 local bump = require 'lib.bump'
 local luastar = require 'lib.lua-star'
+local tick = require 'lib.tick'
+local actors = require 'actors'
 
 local steer = math2.steer
 local setColor = love.graphics.setColor
@@ -14,6 +16,8 @@ local remove = lume.remove
 local randomchoice = lume.randomchoice
 local eq = math2.eq
 local floor = math.floor
+local find = lume.find
+local TILE = game.maze.TILE
 
 local world = bump.newWorld()
 
@@ -45,10 +49,8 @@ local load_maze_from_img = function (path, colors)
 end
 
 ---@param idx number
----@param w number
----@param tile_size number
-local tile_pos = function (idx, w, tile_size)
-    return vec2(math2.array1d_to_array2d(idx, w)) * tile_size
+local tile_pos = function (idx)
+    return vec2(math2.array1d_to_array2d(idx, game.maze.width)) * game.maze.tile_size
 end
 
 ---@param idx number
@@ -79,11 +81,13 @@ local key = function (name, idx)
     return name..'_'..tostring(idx)
 end
 
----@param key string
-local draw_hitbox = function (key)
+---@param key any
+---@param c? string color
+local draw_hitbox = function (key, c)
     if world:hasItem(key) then
+        c = c or mui.GREY_200
         local x, y, w, h = world:getRect(key)
-        setColor(color(mui.GREY_200))
+        setColor(color(c))
         rectangle('fill', x, y, w, h)
     end
 end
@@ -109,72 +113,78 @@ local get_players = function ()
     end)
 end
 
+---@param tile TILE
+local get_tiles_of_type = function (tile)
+    local idxs = {}
+    for i, t in ipairs(game.maze.tiles) do
+        if t == tile then
+            lume.push(idxs, i)
+        end
+    end
+    return idxs
+end
+
+local ticks = {}
+
+---@param name string
+---@param cd number seconds
+local use_cd = function (name, cd)
+    local timer = ticks[name]
+    if not timer then
+        ticks[name] = tick.delay(function ()
+            ticks[name] = nil
+        end, cd)
+        return true
+    end
+    return false
+end
+
 ---@type State
 return {
     load = function ()
         game.maze.tiles, game.maze.width = load_maze_from_img(
             assets.maze_test, game.maze.tile_colors
         )
-        game.maze.entrances = {}
-        game.maze.exits = {}
-        ---@type number[]
-        local idxs = {}
-        for i, tile in ipairs(game.maze.tiles) do
-            if tile ~= 0 then
-                lume.push(idxs, i)
-            end
-        end
-        -- set entrances
-        local idx_entrance_exit = lume.filter(idxs, function(idx)
-            return game.maze.tiles[idx] == 2
-        end)
-        game.maze.entrances = {}
-        for _ = 1, #get_players() do
-            local idx = randomchoice(idx_entrance_exit)
-            remove(idxs, idx)
-            remove(idx_entrance_exit, idx)
-            lume.push(game.maze.entrances, idx)
-        end
-        if #game.maze.entrances == 0 then
+        if #get_tiles_of_type(TILE.entrance) == 0 then
             log.error("no maze entrances")
         end
         -- set exits
-        game.maze.exits = idx_entrance_exit
-        for _, idx in ipairs(game.maze.exits) do
-            remove(idxs, idx)
-        end
+        local exit = randomchoice(get_tiles_of_type(TILE.entrance))
+        game.maze.tiles[exit] = 3
         -- setup actors
-        for i, e in ipairs(game.actors) do
-            if e.enemy then
+        for i, a in ipairs(game.actors) do
+            if a.enemy then
                 -- place enemy in random tile
-                local idx = randomchoice(idxs)
-                remove(idxs, idx)
-                e.pos = tile_pos(idx, game.maze.width, game.maze.tile_size)
+                local idx = randomchoice(get_tiles_of_type(TILE.ground))
+                a.pos = tile_pos(idx)
                 -- path to random player (test code)
                 local player = randomchoice(get_players())
                 local player_idx = get_tile_idx(player.pos.x, player.pos.y)
                 local goal_x, goal_y = math2.array1d_to_array2d(player_idx, game.maze.width)
                 local start_x, start_y = math2.array1d_to_array2d(idx, game.maze.width)
-                e.map_path = luastar:find(
+                local path = luastar:find(
                     game.maze.width, game.maze.width, 
                     {x=start_x, y=start_y}, {x=goal_x, y=goal_y},
                     pos_is_walkable,
                     true, true
                 )
-                log.debug('path to player', e.map_path)
+                if path then
+                    a.map_path = path
+                end
+                a.start_tile = idx
             end
-            if e.player then
+            if a.player then
                 -- place at random entrance
-                local idx = randomchoice(game.maze.entrances)
-                e.pos = tile_pos(idx, game.maze.width, game.maze.tile_size)
+                local idx = randomchoice(get_tiles_of_type(TILE.entrance))
+                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+                a.start_tile = idx
             end
             -- add hitbox
-            world:add(key('actor_body', i), e.pos.x, e.pos.y, 32, 16)
+            world:add(a, a.pos.x, a.pos.y, 32, 16)
         end
         for _ = 1, game.maze.trap_count do
-            local idx = randomchoice(idxs)
-            remove(idxs, idx)
-            game.maze.tiles[idx] = 3
+            local idx = randomchoice(get_tiles_of_type(TILE.ground))
+            -- TODO place trap here
         end
         -- add tile walls
         for i, tile in ipairs(game.maze.tiles) do
@@ -201,6 +211,7 @@ return {
     end,
 
     update = function (dt)
+        tick.update(dt)
         for i, a in ipairs(game.actors) do
             -- movement input
             local movex, movey = 0, 0
@@ -216,9 +227,29 @@ return {
             end
             -- move hitbox
             local target = a.pos + (a.vel * dt)
-            local x, y, cols, len = world:move(key('actor_body', i), target.x, target.y+16)
+            local x, y, cols, len = world:move(a, target.x, target.y+16)
             if len > 0 then
                 a.pos:set(x, y-16)
+                -- resolve collisions
+                for i = 1, len do
+                    local col = cols[i]
+                    ---@type Actor
+                    local other = col.other
+                    if other.dmg and use_cd(key('take damage', i), 3) then
+                        a.hp = a.hp - other.dmg
+                        if a.hp <= 0 and a.player then
+                            log.info("player died")
+                            -- respawn at entrance
+                            a.pos = tile_pos(a.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+                            world:update(a, a.pos.x, a.pos.y + 16)
+                            a.hp = actors.HP
+                        end
+                        if a.hp <= 0 and a.enemy then
+                            -- enemy died
+                            log.info("enemy died")
+                        end
+                    end
+                end
             else
                 a.pos:set(target)
             end
@@ -230,28 +261,23 @@ return {
         -- draw maze
         local tile_size = game.maze.tile_size
         for i, tile in ipairs(game.maze.tiles) do
-            if tile > 0 then
+            if tile ~= TILE.none then
                 local ix, iy = math2.array1d_to_array2d(i, game.maze.width)
                 local x, y = ix * tile_size, iy * tile_size
-                local colors = {
-                    mui.GREEN_100,
-                    mui.BLUE_100,
-                    mui.PURPLE_100,
-                }
-                setColor(color(colors[tile]))
+                setColor(color(game.maze.tile_colors[tile]))
                 rectangle("fill", x, y, tile_size, tile_size)
             end
         end
         -- draw players
         -- draw actors
-        for i, e in ipairs(game.actors) do
-            if e.enemy then
+        for i, a in ipairs(game.actors) do
+            if a.enemy then
                 setColor(color(mui.RED_500))
             else
                 setColor(color(mui.GREEN_500))
             end
-            rectangle("fill", e.pos.x, e.pos.y, 32, 32)
-            draw_hitbox(key('actor_body', i))
+            rectangle("fill", a.pos.x, a.pos.y, 32, 32)
+            draw_hitbox(a)
         end
         -- draw walls
         for i in ipairs(game.maze.tiles) do
@@ -262,7 +288,7 @@ return {
                 'wall_bottom_'..tostring(i),
             }
             for _, key in ipairs(keys) do
-                draw_hitbox(key)
+                draw_hitbox(key, mui.BLUE_GREY_900)
             end
         end
         camera.pop()
