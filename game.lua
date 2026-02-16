@@ -24,6 +24,7 @@ return {
             2, 1, 1, 1, 2,
         },
         tile_size = 64,
+        traps = {'poison_gas'},
     },
     ---@type Actor[]
     actors = {
@@ -32,6 +33,9 @@ return {
         actors.slime(),
         actors.slime(),
         actors.slime(),
+        actors.sword(),
+        actors.sword(),
+        actors.sword(),
+        actors.sword(),
     },
-    traps = {'poison_gas'}
 }

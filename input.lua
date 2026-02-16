@@ -14,6 +14,7 @@ return baton.new{
         aim_down = {'key:down', 'axis:righty+'},
         -- actions
         primary = {'mouse:1', 'button:rightshoulder', 'axis:triggerright+'},
+        secondary = {'mouse:2'},
         -- TODO dash/roll?
         -- secondary = {'mouse:2', 'button:b'},
         next = {'mouse:2', 'button:leftshoulder', 'axis:triggerleft+'},

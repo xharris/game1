@@ -174,7 +174,9 @@ function lume.push(t, ...)
   return ...
 end
 
-
+---@generic V
+---@param t V[]
+---@param x V
 function lume.remove(t, x)
   local iter = getiter(t)
   for i, v in iter(t) do

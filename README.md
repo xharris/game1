@@ -43,8 +43,8 @@
 - [x] enemies
   - [x] kills player on contact
 - items
-  - spawn at random tiles
-  - collide to pick up
+  - [x] spawn at random tiles
+  - [x] collide to pick up
   - press ... to drop item
   - sword
     - press ... to swing

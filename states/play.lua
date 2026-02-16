@@ -18,6 +18,7 @@ local eq = math2.eq
 local floor = math.floor
 local find = lume.find
 local TILE = game.maze.TILE
+local ripairs = lume.ripairs
 
 local world = bump.newWorld()
 
@@ -75,20 +76,23 @@ local get_tile_bbox = function (idx, w, tile_size)
     return x * tile_size, y * tile_size, tile_size, tile_size
 end
 
----@param name string
----@param idx number
-local key = function (name, idx)
-    return name..'_'..tostring(idx)
-end
+---@param ... any
+local key = lume.memoize(function (...)
+    local id = ''
+    for _, prop in ipairs{...} do
+        id = id .. '_' .. tostring(prop)
+    end
+    return id
+end)
 
 ---@param key any
 ---@param c? string color
 local draw_hitbox = function (key, c)
     if world:hasItem(key) then
-        c = c or mui.GREY_200
+        c = c or mui.GREEN_50
         local x, y, w, h = world:getRect(key)
         setColor(color(c))
-        rectangle('fill', x, y, w, h)
+        rectangle('line', x, y, w, h)
     end
 end
 
@@ -131,7 +135,9 @@ local ticks = {}
 local use_cd = function (name, cd)
     local timer = ticks[name]
     if not timer then
+        log.debug(name, "on cooldown")
         ticks[name] = tick.delay(function ()
+            log.debug(name, "off cooldown")
             ticks[name] = nil
         end, cd)
         return true
@@ -139,9 +145,80 @@ local use_cd = function (name, cd)
     return false
 end
 
+---@param name string
+local is_off_cd = function (name)
+    return ticks[name] == nil
+end
+
+local id = 0
+
+---@param a Actor
+local add_actor = function (a)
+    if not a.id then
+        a.id = tostring(a.id)
+        id = id + 1
+    end
+    if not lume.find(game.actors, a) then
+        lume.push(game.actors, a)
+    end
+    -- add hitbox
+    local shape = a.shape
+    if shape and not world:hasItem(a) then
+        world:add(a, a.pos.x + shape.pos.x, a.pos.y + shape.pos.y, shape.size.x, shape.size.y)
+    end
+    -- add starting tile
+    a.start_tile = get_tile_idx(a.pos:unpack())
+    return a
+end
+
+---@param actor Actor
+local remove_actor = function (actor)
+    world:remove(actor)
+    remove(game.actors, actor)
+end
+
+---@param a Actor
+---@param item Actor
+local can_use_pick_up_item = function (a, item)
+    return is_off_cd(key('pick_up_item', a.id, item.id))
+end
+
+---@param a Actor
+---@param idx number
+local drop_item = function (a, idx)
+    local dropped = a.inventory.items[idx]
+    if dropped then
+        log.debug("drop item:", dropped)
+        table.remove(a.inventory.items, idx)
+        local item = actors.item(dropped)
+        item.pos = a.pos:clone()
+        add_actor(item)
+    end
+end
+
+---@param a Actor
+---@param item Actor
+local pick_up_item = function(a, item)
+    if use_cd(key('pick_up_item', a.id, item.id), 1) then
+        -- drop last item in inventory if above capacity
+        while #a.inventory.items >= a.inventory.capacity do
+            drop_item(a, #a.inventory.items)
+        end
+        if #a.inventory.items < a.inventory.capacity then
+            -- add item to inventory
+            lume.push(a.inventory.items, item.item)
+            log.debug("picked up", item.item.name, ',', #a.inventory.items, 'items')
+            remove_actor(item)
+            return true
+        end
+    end
+    return false
+end
+
 ---@type State
 return {
     load = function ()
+        camera.set_scale(0.5, 0.5)
         game.maze.tiles, game.maze.width = load_maze_from_img(
             assets.maze_test, game.maze.tile_colors
         )
@@ -156,7 +233,7 @@ return {
             if a.enemy then
                 -- place enemy in random tile
                 local idx = randomchoice(get_tiles_of_type(TILE.ground))
-                a.pos = tile_pos(idx)
+                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
                 -- path to random player (test code)
                 local player = randomchoice(get_players())
                 local player_idx = get_tile_idx(player.pos.x, player.pos.y)
@@ -171,16 +248,19 @@ return {
                 if path then
                     a.map_path = path
                 end
-                a.start_tile = idx
             end
             if a.player then
                 -- place at random entrance
                 local idx = randomchoice(get_tiles_of_type(TILE.entrance))
                 a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
-                a.start_tile = idx
             end
-            -- add hitbox
-            world:add(a, a.pos.x, a.pos.y, 32, 16)
+            if a.item then
+                local idx = randomchoice(get_tiles_of_type(TILE.ground))
+                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+            end
+        end
+        for _, a in ipairs(game.actors) do
+            add_actor(a)
         end
         for _ = 1, game.maze.trap_count do
             local idx = randomchoice(get_tiles_of_type(TILE.ground))
@@ -213,41 +293,53 @@ return {
     update = function (dt)
         tick.update(dt)
         for i, a in ipairs(game.actors) do
-            -- movement input
-            local movex, movey = 0, 0
-            if a.player then
-                movex, movey = input:get 'move'
+            if a.move_dir then
+                -- movement input
+                local movex, movey = 0, 0
+                if a.player then
+                    movex, movey = input:get 'move'
+                end
+                a.move_dir:set(movex, movey)
+                -- apply move_dir
+                a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass)
             end
-            a.move_dir:set(movex, movey)
-            -- apply move_dir
-            a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass)
             if a.player then
                 -- set camera position
-                camera.set(a.pos.x, a.pos.y)
+                camera.set_pos(a.pos.x, a.pos.y)
             end
             -- move hitbox
-            local target = a.pos + (a.vel * dt)
-            local x, y, cols, len = world:move(a, target.x, target.y+16)
-            if len > 0 then
-                a.pos:set(x, y-16)
+            local target = a.pos
+            if a.vel then
+                target = a.pos + (a.vel * dt)
+            end
+            if a.shape then
+                target = target + a.shape.pos
+                local x, y, cols, len = world:move(a, target.x, target.y)
+                a.pos:set(x, y)
+                a.pos = a.pos - a.shape.pos
                 -- resolve collisions
                 for i = 1, len do
                     local col = cols[i]
                     ---@type Actor
                     local other = col.other
-                    if other.dmg and use_cd(key('take damage', i), 3) then
+                    if a.hp and other.dmg and use_cd(key('take damage', i), 3) then
+                        -- take
                         a.hp = a.hp - other.dmg
                         if a.hp <= 0 and a.player then
                             log.info("player died")
                             -- respawn at entrance
                             a.pos = tile_pos(a.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
-                            world:update(a, a.pos.x, a.pos.y + 16)
+                            world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
                             a.hp = actors.HP
                         end
                         if a.hp <= 0 and a.enemy then
                             -- enemy died
                             log.info("enemy died")
                         end
+                    end
+                    -- touch item
+                    if a.inventory and other.item and can_use_pick_up_item(a, other) then
+                        pick_up_item(a, other)
                     end
                 end
             else
@@ -273,6 +365,8 @@ return {
         for i, a in ipairs(game.actors) do
             if a.enemy then
                 setColor(color(mui.RED_500))
+            elseif a.item then
+                setColor(color(mui.AMBER_500))
             else
                 setColor(color(mui.GREEN_500))
             end

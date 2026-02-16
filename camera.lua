@@ -9,6 +9,9 @@ M.DEFAULT_ID = 'default'
 ---@type table<string, Vector.lua>
 M.pos = {}
 
+---@type table<string, Vector.lua>
+M.scale = {}
+
 ---@param id? string
 local update_xform = function (id)
     id = id or M.DEFAULT_ID
@@ -17,22 +20,43 @@ local update_xform = function (id)
     end
     xform:reset()
     local ww, wh = love.graphics.getDimensions()
+
+    local pos = M.pos[id]
     if not M.pos[id] then
         M.pos[id] = vec2()
+        pos = M.pos[id]
     end
-    local pos = M.pos[id]
-    xform:translate(-pos.x + (ww/2), -pos.y + (wh/2))
+    local scale = M.scale[id]
+    if not M.scale[id] then
+        M.scale[id] = vec2()
+        scale = M.scale[id]
+    end
+
+    xform:translate(ww/2, wh/2)
+    xform:scale(scale.x, scale.y)
+    xform:translate(-pos.x, -pos.y)
 end
 
 ---@param x number
 ---@param y number
 ---@param id? string
-M.set = function (x, y, id)
+M.set_pos = function (x, y, zoom, id)
     id = id or M.DEFAULT_ID
     if not M.pos[id] then
         M.pos[id] = vec2()
     end
     M.pos[id]:set(x, y)
+end
+
+---@param x number
+---@param y number
+---@param id? string
+M.set_scale = function (x, y, id)
+    id = id or M.DEFAULT_ID
+    if not M.scale[id] then
+        M.scale[id] = vec2()
+    end
+    M.scale[id]:set(x, y)
 end
 
 ---@param id? string
