@@ -1,8 +1,11 @@
 local M = {}
 
+local math2 = require 'lib.math2'
+
 local xform = love.math.newTransform()
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
+local round = math2.round
 
 M.DEFAULT_ID = 'default'
 

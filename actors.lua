@@ -37,10 +37,10 @@ M.slime = function ()
         map_path = {},
         hp = M.HP,
         shape = {
-            tag = 'body',
+            tag = 'hit',
             pos = vec2(-8, 0),
             size = vec2(16, 8),
-            knockback = 400,
+            knockback = 500,
             cd = 1,
         },
         -- tile_path pathing in tile grid

@@ -19,6 +19,7 @@ local floor = math.floor
 local find = lume.find
 local TILE = game.maze.TILE
 local ripairs = lume.ripairs
+local round = math2.round
 
 local world = bump.newWorld()
 
@@ -78,11 +79,11 @@ end
 
 ---@param ... any
 local key = lume.memoize(function (...)
-    local id = ''
+    local id = {}
     for _, prop in ipairs{...} do
-        id = id .. '_' .. tostring(prop)
+        lume.push(id, tostring(prop))
     end
-    return id
+    return table.concat(id, '_')
 end)
 
 ---@param key any
@@ -143,11 +144,6 @@ local use_cd = function (name, cd)
         return true
     end
     return false
-end
-
----@param name string
-local is_off_cd = function (name)
-    return ticks[name] == nil
 end
 
 local id = 0
@@ -255,11 +251,6 @@ local world_filter = function (item, other)
 
     if item_tag == 'hit' and other_tag == 'body' and item.owner == other.id then
         -- cant hit self
-        return false
-    end
-
-    if resp and item.shape.cd and not use_cd(key(item.id, 'hit', other.id), item.shape.cd) then
-        -- can only hit something every `cd` seconds
         return false
     end
 
@@ -480,14 +471,10 @@ return {
                         pick_up_item(a, other)
                     end
                     -- a knocks back other
-                    if a.shape.knockback and other.vel then
+                    if a.shape.knockback and other.vel and use_cd(key(a.id, 'knockback'), 0.5) then
+                        log.debug("knock back")
                         local norm = (other.pos - a.pos):norm()
                         other.vel = other.vel + norm * a.shape.knockback
-                    end
-                    -- other knocks back a
-                    if other.shape.knockback and a.vel then
-                        local norm = (a.pos - other.pos):norm()
-                        a.vel = a.vel + norm * other.shape.knockback
                     end
                 end
             else
@@ -521,7 +508,7 @@ return {
                 skip = true
             end
             if not skip then
-                rectangle("fill", a.pos.x-16, a.pos.y-16, 32, 32)
+                rectangle("fill", round(a.pos.x-16), round(a.pos.y-16), 32, 32)
                 draw_hitbox(a)
                 -- draw aim direction
                 if a.aim_dir and a.range then
@@ -529,18 +516,6 @@ return {
                     setColor(color(mui.RED_500))
                     rectangle("fill", aim_pos.x-6, aim_pos.y-6, 12, 12)
                 end
-            end
-        end
-        -- draw walls
-        for i in ipairs(game.maze.tiles) do
-            local keys = {
-                'wall_left_'..tostring(i),
-                'wall_right_'..tostring(i),
-                'wall_top_'..tostring(i),
-                'wall_bottom_'..tostring(i),
-            }
-            for _, key in ipairs(keys) do
-                draw_hitbox(key, mui.BLUE_GREY_900)
             end
         end
         camera.pop()
