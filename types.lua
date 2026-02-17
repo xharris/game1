@@ -7,7 +7,7 @@
 ---@field name string
 ---@field cooldown? number
 
----@alias ShapeTag 'fall'|'wall'|'body'|'hit'
+---@alias ShapeTag 'fall'|'wall'|'body'|'hit'|'area'
 
 ---@class Shape
 ---@field tag ShapeTag
@@ -15,6 +15,7 @@
 ---@field size Vector.lua
 ---@field disabled? boolean
 ---@field knockback? number [tag=hit] collision knockback strength
+---@field cd? number cooldown
 
 ---@class Actor
 ---@field id? string

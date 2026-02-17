@@ -135,9 +135,9 @@ local ticks = {}
 local use_cd = function (name, cd)
     local timer = ticks[name]
     if not timer then
-        -- log.debug(name, "on cooldown")
+        log.debug(name, "on cooldown")
         ticks[name] = tick.delay(function ()
-            -- log.debug(name, "off cooldown")
+            log.debug(name, "off cooldown")
             ticks[name] = nil
         end, cd)
         return true
@@ -167,20 +167,24 @@ local add_actor = function (a)
         world:add(a, a.pos.x + shape.pos.x, a.pos.y + shape.pos.y, shape.size.x, shape.size.y)
     end
     -- add starting tile
-    a.start_tile = get_tile_idx(a.pos:unpack())
+    if not a.start_tile then
+        a.start_tile = get_tile_idx(a.pos:unpack())
+    end
     return a
+end
+
+---@param a Actor
+local place_at_start_tile = function (a)
+    if a.start_tile then
+        a.pos = tile_pos(a.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+        world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
+    end
 end
 
 ---@param actor Actor
 local remove_actor = function (actor)
     world:remove(actor)
     remove(game.actors, actor)
-end
-
----@param a Actor
----@param item Actor
-local can_use_pick_up_item = function (a, item)
-    return is_off_cd(key('pick_up_item', a.id, item.id))
 end
 
 ---@param a Actor
@@ -199,7 +203,7 @@ end
 ---@param a Actor
 ---@param item Actor
 local pick_up_item = function(a, item)
-    if use_cd(key('pick_up_item', a.id, item.id), 1) then
+    if use_cd(key('pick_up_item', a.id), 2) then
         -- drop last item in inventory if above capacity
         while #a.inventory.items >= a.inventory.capacity do
             drop_item(a, #a.inventory.items)
@@ -207,7 +211,7 @@ local pick_up_item = function(a, item)
         if #a.inventory.items < a.inventory.capacity then
             -- add item to inventory
             lume.push(a.inventory.items, item.item)
-            log.debug("picked up", item.item.name..',' , #a.inventory.items, 'items')
+            log.debug("picked up", item.item.name..', inventory:' , #a.inventory.items, 'items')
             remove_actor(item)
             return true
         end
@@ -215,10 +219,28 @@ local pick_up_item = function(a, item)
     return false
 end
 
+---@param a Actor
+---@param b Actor
+local get_pathing = function (a, b)
+    -- path to random player (test code)
+    local player = randomchoice(get_players())
+    local a_tile_idx = get_tile_idx(a.pos.x, a.pos.y)
+    local b_tile_idx = get_tile_idx(b.pos.x, b.pos.y)
+    local goal_x, goal_y = math2.array1d_to_array2d(b_tile_idx, game.maze.width)
+    local start_x, start_y = math2.array1d_to_array2d(a_tile_idx, game.maze.width)
+    local path = luastar:find(
+        game.maze.width, game.maze.width, 
+        {x=start_x, y=start_y}, {x=goal_x, y=goal_y},
+        pos_is_walkable,
+        true, true
+    )
+    return path
+end
+
 ---@alias WorldResponse 'slide'|'touch'|'cross'|'bounce'
 
 local responses = {
-    body = {body='slide', wall='slide', fall='cross'},
+    body = {body='slide', wall='slide', fall='cross', area='cross'},
     hit = {body='cross'},
 }
 
@@ -236,8 +258,9 @@ local world_filter = function (item, other)
         return false
     end
 
-    if resp then
-        log.debug('response', resp)
+    if resp and item.shape.cd and not use_cd(key(item.id, 'hit', other.id), item.shape.cd) then
+        -- can only hit something every `cd` seconds
+        return false
     end
 
     return resp
@@ -246,7 +269,7 @@ end
 ---@type State
 return {
     load = function ()
-        camera.set_scale(2, 2)
+        camera.set_scale(0.75, 0.75)
         game.maze.tiles, game.maze.width = load_maze_from_img(
             assets.maze_test, game.maze.tile_colors
         )
@@ -273,35 +296,19 @@ return {
         for _, a in ipairs(game.actors) do
             if a.enemy then
                 -- place enemy in random tile
-                local idx = randomchoice(get_tiles_of_type(TILE.ground))
-                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
-                -- path to random player (test code)
-                local player = randomchoice(get_players())
-                local player_idx = get_tile_idx(player.pos.x, player.pos.y)
-                local goal_x, goal_y = math2.array1d_to_array2d(player_idx, game.maze.width)
-                local start_x, start_y = math2.array1d_to_array2d(idx, game.maze.width)
-                local path = luastar:find(
-                    game.maze.width, game.maze.width, 
-                    {x=start_x, y=start_y}, {x=goal_x, y=goal_y},
-                    pos_is_walkable,
-                    true, true
-                )
-                if path then
-                    a.map_path = path
-                end
+                a.start_tile = randomchoice(get_tiles_of_type(TILE.ground))
             end
             if a.player then
                 -- place at random entrance
-                local idx = randomchoice(get_tiles_of_type(TILE.entrance))
-                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+                a.start_tile = randomchoice(get_tiles_of_type(TILE.entrance))
             end
             if a.item then
-                local idx = randomchoice(get_tiles_of_type(TILE.ground))
-                a.pos = tile_pos(idx) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+                a.start_tile = randomchoice(get_tiles_of_type(TILE.ground))
             end
         end
         for _, a in ipairs(game.actors) do
             add_actor(a)
+            place_at_start_tile(a)
         end
         for _ = 1, game.maze.trap_count do
             local idx = randomchoice(get_tiles_of_type(TILE.ground))
@@ -410,7 +417,8 @@ return {
                                     tag = 'hit',
                                     pos=vec2(-16, -16), 
                                     size=vec2(32, 32),
-                                    knockback = 300
+                                    knockback = 300,
+                                    cd = 5,
                                 },
                             }
                         end, 0.1)
@@ -436,31 +444,50 @@ return {
                     local col = cols[i]
                     ---@type Actor
                     local other = col.other
-                    if a.hp and other.dmg and other.owner ~= a.id and use_cd(key('take damage', i), 3) then
-                        -- take
-                        a.hp = a.hp - other.dmg
-                        if a.hp <= 0 and a.player then
-                            log.info("player died")
-                            -- respawn at entrance
-                            a.pos = tile_pos(a.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
-                            world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
-                            a.hp = actors.HP
+                    -- a deals dmg to other
+                    if other.hp and a.dmg and use_cd(key('take damage', a.id, other.id), 3) then
+                        other.hp = other.hp - a.dmg
+                        if other.hp <= 0 then
+                            if other.player then
+                                log.info("player died")
+                                other.pos = tile_pos(other.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+                                world:update(other, other.pos.x + other.shape.pos.x, other.pos.y + other.shape.pos.y)
+                                other.hp = actors.HP
+                            end
+                            if other.enemy then
+                                log.info("enemy died")
+                                remove_actor(other)
+                            end
                         end
-                        if a.hp <= 0 and a.enemy then
-                            -- enemy died
-                            log.info("enemy died")
-                            remove_actor(a)
+                    end
+                    -- other deals dmg to a
+                    if a.hp and other.dmg and use_cd(key('take damage', other.id, a.id), 3) then
+                        a.hp = a.hp - other.dmg
+                        if a.hp <= 0 then
+                            if a.player then
+                                log.info("player died")
+                                place_at_start_tile(a)
+                                a.hp = actors.HP
+                            end
+                            if a.enemy then
+                                log.info("enemy died")
+                                remove_actor(a)
+                            end
                         end
                     end
                     -- touch item
-                    if a.inventory and other.item and can_use_pick_up_item(a, other) then
+                    if a.inventory and other.item then
                         pick_up_item(a, other)
                     end
-                    if a.shape.knockback then
-                        -- apply knockback impulse along collision normal
+                    -- a knocks back other
+                    if a.shape.knockback and other.vel then
                         local norm = (other.pos - a.pos):norm()
-                        log.debug('knockback', norm * a.shape.knockback)
                         other.vel = other.vel + norm * a.shape.knockback
+                    end
+                    -- other knocks back a
+                    if other.shape.knockback and a.vel then
+                        local norm = (a.pos - other.pos):norm()
+                        a.vel = a.vel + norm * other.shape.knockback
                     end
                 end
             else

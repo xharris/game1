@@ -36,11 +36,12 @@ M.slime = function ()
         mass = 10,
         map_path = {},
         hp = M.HP,
-        dmg = M.HP,
         shape = {
             tag = 'body',
             pos = vec2(-8, 0),
             size = vec2(16, 8),
+            knockback = 400,
+            cd = 1,
         },
         -- tile_path pathing in tile grid
     }
@@ -53,7 +54,7 @@ M.item = function (item)
         item = clone(item),
         pos = vec2(),
         shape = {
-            tag = 'body',
+            tag = 'area',
             pos = vec2(-16, -16),
             size = vec2(32, 32),
         },
