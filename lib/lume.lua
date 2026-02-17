@@ -574,6 +574,7 @@ function lume.lambda(str)
   return lambda_cache[str]
 end
 
+lume.serialize_with_quotes = false
 
 local serialize
 
@@ -582,7 +583,7 @@ local serialize_map = {
   [ "boolean" ] = tostring,
   [ "nil"     ] = tostring,
   [ "userdata"] = tostring,
-  [ "string"  ] = function(v) return string.format("\"%s\"", v) end,
+  [ "string"  ] = function(v) return lume.serialize_with_quotes and string.format("\"%s\"", v) or string.format("%s", v) end,
   [ "number"  ] = function(v)
     if      v ~=  v     then return  "0/0"      --  nan
     elseif  v ==  1 / 0 then return  "1/0"      --  inf

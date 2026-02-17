@@ -45,11 +45,17 @@
 - items
   - [x] spawn at random tiles
   - [x] collide to pick up
-  - press ... to drop item
-  - sword
-    - press ... to swing
-    - deals 5 dmg
-- exit to win
+  - [x] sword
+    - [x] press `primary` to swing
+      - [x] 0 sec: start animation
+      - [x] 0.5 sec: create hitbox
+      - [x] 0.6 sec: remove hitbox
+      - [x] 1 sec: swing off cooldown
+    - [x] deals 5 dmg
+- aim with mouse
+- exit to go to next floor
+  - add new maze layout
+    - enemies, items, traps
 - lighting
 - enemy ai
   - chase player
@@ -64,6 +70,8 @@
     - up to X times
 
 ## After prototyping
+
+- player cannot die, but get knocked off stage and fall to lower floor (or off map and die)
 
 - enemies
 - traps

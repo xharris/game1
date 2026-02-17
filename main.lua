@@ -1,12 +1,13 @@
 io.stdout:setvbuf("no")
 math.random = love.math.random
+game = require 'game'
+love.math.setRandomSeed(game.seed)
 
 local json = require 'lib.json'
 log = require 'lib.log'
 lume = require 'lib.lume'
 log.serialize = lume.serialize
 vec2 = require 'lib.vector'
-game = require 'game'
 
 local input = require 'input'
 
@@ -35,6 +36,7 @@ function love.draw()
 end
 
 local function error_printer(msg, layer)
+    lume.serialize_with_quotes = true
 	msg =  (debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", ""))
     msg = msg .. '\n---\n' .. lume.serialize(game) .. '\n---\n'
     return msg

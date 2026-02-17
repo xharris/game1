@@ -1,5 +1,5 @@
-local actors = require 'actors'
 return {
+    seed = 1,
     maze = {
         trap_count = 2,
         width = 5,
@@ -23,19 +23,9 @@ return {
             0, 0, 1, 0, 1,
             2, 1, 1, 1, 2,
         },
-        tile_size = 64,
+        tile_size = 128,
         traps = {'poison_gas'},
     },
     ---@type Actor[]
-    actors = {
-        actors.player(1),
-        actors.slime(),
-        actors.slime(),
-        actors.slime(),
-        actors.slime(),
-        actors.sword(),
-        actors.sword(),
-        actors.sword(),
-        actors.sword(),
-    },
+    actors = {},
 }

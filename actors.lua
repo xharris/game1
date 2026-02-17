@@ -12,14 +12,16 @@ M.player = function (player)
         pos = vec2(),
         vel = vec2(),
         move_dir = vec2(),
-        max_move_speed = 200,
+        max_move_speed = 300,
         mass = 10,
         hp = M.HP,
-        inventory = {capacity=1, items={}},
+        inventory = {capacity=1, items={M.sword().item}},
         shape = {
-            pos = vec2(0, 16),
+            tag = 'body',
+            pos = vec2(-16, 0),
             size = vec2(32, 16),
         },
+        range = 48,
     }
 end
 
@@ -36,8 +38,9 @@ M.slime = function ()
         hp = M.HP,
         dmg = M.HP,
         shape = {
-            pos = vec2(8, 8),
-            size = vec2(16, 16),
+            tag = 'body',
+            pos = vec2(-8, 0),
+            size = vec2(16, 8),
         },
         -- tile_path pathing in tile grid
     }
@@ -50,14 +53,18 @@ M.item = function (item)
         item = clone(item),
         pos = vec2(),
         shape = {
-            pos = vec2(),
+            tag = 'body',
+            pos = vec2(-16, -16),
             size = vec2(32, 32),
         },
     }
 end
 
 M.sword = function ()
-    return M.item{name='sword'}
+    return M.item{
+        name='sword',
+        cooldown = 0.2
+    }
 end
 
 return M 

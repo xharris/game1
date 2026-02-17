@@ -155,8 +155,8 @@ local id = 0
 ---@param a Actor
 local add_actor = function (a)
     if not a.id then
-        a.id = tostring(a.id)
         id = id + 1
+        a.id = tostring(id)
     end
     if not lume.find(game.actors, a) then
         lume.push(game.actors, a)
@@ -207,7 +207,7 @@ local pick_up_item = function(a, item)
         if #a.inventory.items < a.inventory.capacity then
             -- add item to inventory
             lume.push(a.inventory.items, item.item)
-            log.debug("picked up", item.item.name, ',', #a.inventory.items, 'items')
+            log.debug("picked up", item.item.name..',' , #a.inventory.items, 'items')
             remove_actor(item)
             return true
         end
@@ -215,13 +215,50 @@ local pick_up_item = function(a, item)
     return false
 end
 
+---@alias WorldResponse 'slide'|'touch'|'cross'|'bounce'
+
+local responses = {
+    body = {body='slide', wall='slide', fall='cross', hit='bounce'},
+    hit = {body='cross'},
+}
+
+---@param item Actor
+---@param other Actor
+---@return 'slide'|'touch'|'cross'|'slide'|'bounce'|false type response type
+local world_filter = function (item, other)
+    local item_tag = item.shape.tag
+    local other_tag = other.shape.tag
+
+    local resp = responses[item_tag] and responses[item_tag][other_tag] or false
+
+    if item_tag == 'hit' and other_tag == 'body' and item.owner == other.id then
+        -- cant hit self
+        return false
+    end
+
+    return resp
+end
+
 ---@type State
 return {
     load = function ()
-        camera.set_scale(0.5, 0.5)
+        camera.set_scale(0.8, 0.8)
         game.maze.tiles, game.maze.width = load_maze_from_img(
             assets.maze_test, game.maze.tile_colors
         )
+
+        game.actors = {
+            actors.player(1),
+            actors.slime(),
+            actors.slime(),
+            actors.slime(),
+            actors.slime(),
+            actors.sword(),
+            actors.sword(),
+            actors.sword(),
+            actors.sword(),
+        }
+
         if #get_tiles_of_type(TILE.entrance) == 0 then
             log.error("no maze entrances")
         end
@@ -229,7 +266,7 @@ return {
         local exit = randomchoice(get_tiles_of_type(TILE.entrance))
         game.maze.tiles[exit] = 3
         -- setup actors
-        for i, a in ipairs(game.actors) do
+        for _, a in ipairs(game.actors) do
             if a.enemy then
                 -- place enemy in random tile
                 local idx = randomchoice(get_tiles_of_type(TILE.ground))
@@ -267,24 +304,53 @@ return {
             -- TODO place trap here
         end
         -- add tile walls
+        -- TODO no walls. remove or have only some rooms with walls?
         for i, tile in ipairs(game.maze.tiles) do
             if tile ~= 0 then
                 local x, y, w, h = get_tile_bbox(i, game.maze.width, game.maze.tile_size)
                 if get_tile_neighbor(i, -1, 0) == 0 then
                     -- wall left
-                    world:add(key('wall_left', i), x-5, y, 5, h)
+                    add_actor{
+                        pos = vec2(x-5, y),
+                        shape = {
+                            tag = 'wall',
+                            pos = vec2(),
+                            size = vec2(5, h),
+                        }
+                    }
                 end
                 if get_tile_neighbor(i, 1, 0) == 0 then
                     -- wall right
-                    world:add(key('wall_right', i), x+w, y, 5, h)
+                    add_actor{
+                        pos = vec2(x+w, y),
+                        shape = {
+                            tag = 'wall',
+                            pos = vec2(),
+                            size = vec2(5, h),
+                        }
+                    }
                 end
                 if get_tile_neighbor(i, 0, -1) == 0 then
                     -- wall top
-                    world:add(key('wall_top', i), x, y-5, w, 5)
+                    add_actor{
+                        pos = vec2(x, y-5),
+                        shape = {
+                            tag = 'wall',
+                            pos = vec2(),
+                            size = vec2(w, 5),
+                        }
+                    }
                 end
                 if get_tile_neighbor(i, 0, 1) == 0 then
                     -- wall bottom
-                    world:add(key('wall_bottom', i), x, y+h, w, 5)
+                    add_actor{
+                        pos = vec2(x, y+h),
+                        shape = {
+                            tag = 'wall',
+                            pos = vec2(),
+                            size = vec2(w, 5),
+                        }
+                    }
                 end
             end
         end
@@ -304,8 +370,51 @@ return {
                 a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass)
             end
             if a.player then
+
+                if a.move_dir:getmag() > 0 then
+                    a.aim_dir = a.move_dir:norm()
+                elseif not a.aim_dir then
+                    a.aim_dir = vec2(1,0)
+                end
+
+                -- mouse aim direction
+                local mx, my = love.mouse.getPosition()
+                mx, my = camera.to_world(mx, my)
+                a.aim_dir = (vec2(mx, my) - a.pos):norm()
+
                 -- set camera position
                 camera.set_pos(a.pos.x, a.pos.y)
+                -- use item
+                if a.inventory and #a.inventory.items > 0 then
+                    local item = a.inventory.items[1]
+                    if  input:down 'primary' and
+                        item.name == 'sword' and
+                        a.aim_dir and
+                        use_cd(key('use_item', a.id, item.name), item.cooldown or 1)
+                    then
+                        -- swing sword
+                        local sword_hitbox
+                        tick.delay(function ()
+                            -- create sword dmg+hitbox
+                            log.debug("aim dir", a.aim_dir)
+                            sword_hitbox = add_actor{
+                                owner = a.id,
+                                pos = a.pos + (a.aim_dir * a.range),
+                                vel = a.vel,
+                                dmg = 5,
+                                shape = {
+                                    tag = 'hit',
+                                    pos=vec2(-16, -16), 
+                                    size=vec2(32, 32),
+                                },
+                            }
+                        end, 0.1)
+                        :after(function ()
+                            -- remove hitbox at 0.6 sec
+                            remove_actor(sword_hitbox)
+                        end, 0.1)
+                    end
+                end
             end
             -- move hitbox
             local target = a.pos
@@ -314,7 +423,7 @@ return {
             end
             if a.shape then
                 target = target + a.shape.pos
-                local x, y, cols, len = world:move(a, target.x, target.y)
+                local x, y, cols, len = world:move(a, target.x, target.y, world_filter)
                 a.pos:set(x, y)
                 a.pos = a.pos - a.shape.pos
                 -- resolve collisions
@@ -322,7 +431,7 @@ return {
                     local col = cols[i]
                     ---@type Actor
                     local other = col.other
-                    if a.hp and other.dmg and use_cd(key('take damage', i), 3) then
+                    if a.hp and other.dmg and other.owner ~= a.id and use_cd(key('take damage', i), 3) then
                         -- take
                         a.hp = a.hp - other.dmg
                         if a.hp <= 0 and a.player then
@@ -335,11 +444,15 @@ return {
                         if a.hp <= 0 and a.enemy then
                             -- enemy died
                             log.info("enemy died")
+                            remove_actor(a)
                         end
                     end
                     -- touch item
                     if a.inventory and other.item and can_use_pick_up_item(a, other) then
                         pick_up_item(a, other)
+                    end
+                    if col.bounce then
+                        a.vel = vec2(col.bounce.x, col.bounce.y) - a.pos
                     end
                 end
             else
@@ -360,18 +473,28 @@ return {
                 rectangle("fill", x, y, tile_size, tile_size)
             end
         end
-        -- draw players
         -- draw actors
         for i, a in ipairs(game.actors) do
-            if a.enemy then
-                setColor(color(mui.RED_500))
-            elseif a.item then
+            local skip = false
+            if a.item then
                 setColor(color(mui.AMBER_500))
-            else
+            elseif a.dmg then
+                setColor(color(mui.RED_500))
+            elseif a.player or a.enemy then
                 setColor(color(mui.GREEN_500))
+            else
+                skip = true
             end
-            rectangle("fill", a.pos.x, a.pos.y, 32, 32)
-            draw_hitbox(a)
+            if not skip then
+                rectangle("fill", a.pos.x-16, a.pos.y-16, 32, 32)
+                draw_hitbox(a)
+                -- draw aim direction
+                if a.aim_dir and a.range then
+                    local aim_pos = a.pos + (a.aim_dir * a.range)
+                    setColor(color(mui.RED_500))
+                    rectangle("fill", aim_pos.x-6, aim_pos.y-6, 12, 12)
+                end
+            end
         end
         -- draw walls
         for i in ipairs(game.maze.tiles) do

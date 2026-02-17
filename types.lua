@@ -5,17 +5,23 @@
 
 ---@class Item
 ---@field name string
+---@field cooldown? number
+
+---@alias ShapeTag 'fall'|'wall'|'body'|'hit'
 
 ---@class Shape
+---@field tag ShapeTag
 ---@field pos Vector.lua
 ---@field size Vector.lua
 ---@field disabled? boolean
 
 ---@class Actor
 ---@field id? string
+---@field owner? string id
 ---@field player? number
 ---@field pos Vector.lua
 ---@field vel? Vector.lua
+---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
 ---@field max_move_speed? number
 ---@field mass? number
@@ -28,4 +34,4 @@
 ---@field inventory? {items:Item[], capacity:number}
 ---@field item? Item this actor is an item
 ---@field shape? Shape
----@field disable_shape? boolean disable hitbox shape
+---@field range? number aim / attacks / projectiles
