@@ -52,7 +52,7 @@
       - [x] 0.6 sec: remove hitbox
       - [x] 1 sec: swing off cooldown
     - [x] deals 5 dmg
-- aim with mouse
+- [x] aim with mouse
 - exit to go to next floor
   - add new maze layout
     - enemies, items, traps

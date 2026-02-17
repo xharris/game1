@@ -14,6 +14,7 @@
 ---@field pos Vector.lua
 ---@field size Vector.lua
 ---@field disabled? boolean
+---@field knockback? number [tag=hit] collision knockback strength
 
 ---@class Actor
 ---@field id? string

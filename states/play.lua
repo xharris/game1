@@ -135,9 +135,9 @@ local ticks = {}
 local use_cd = function (name, cd)
     local timer = ticks[name]
     if not timer then
-        log.debug(name, "on cooldown")
+        -- log.debug(name, "on cooldown")
         ticks[name] = tick.delay(function ()
-            log.debug(name, "off cooldown")
+            -- log.debug(name, "off cooldown")
             ticks[name] = nil
         end, cd)
         return true
@@ -218,7 +218,7 @@ end
 ---@alias WorldResponse 'slide'|'touch'|'cross'|'bounce'
 
 local responses = {
-    body = {body='slide', wall='slide', fall='cross', hit='bounce'},
+    body = {body='slide', wall='slide', fall='cross'},
     hit = {body='cross'},
 }
 
@@ -236,13 +236,17 @@ local world_filter = function (item, other)
         return false
     end
 
+    if resp then
+        log.debug('response', resp)
+    end
+
     return resp
 end
 
 ---@type State
 return {
     load = function ()
-        camera.set_scale(0.8, 0.8)
+        camera.set_scale(2, 2)
         game.maze.tiles, game.maze.width = load_maze_from_img(
             assets.maze_test, game.maze.tile_colors
         )
@@ -367,7 +371,7 @@ return {
                 end
                 a.move_dir:set(movex, movey)
                 -- apply move_dir
-                a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass)
+                a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
             end
             if a.player then
 
@@ -396,7 +400,7 @@ return {
                         local sword_hitbox
                         tick.delay(function ()
                             -- create sword dmg+hitbox
-                            log.debug("aim dir", a.aim_dir)
+                            -- log.debug("aim dir", a.aim_dir)
                             sword_hitbox = add_actor{
                                 owner = a.id,
                                 pos = a.pos + (a.aim_dir * a.range),
@@ -406,6 +410,7 @@ return {
                                     tag = 'hit',
                                     pos=vec2(-16, -16), 
                                     size=vec2(32, 32),
+                                    knockback = 300
                                 },
                             }
                         end, 0.1)
@@ -451,8 +456,11 @@ return {
                     if a.inventory and other.item and can_use_pick_up_item(a, other) then
                         pick_up_item(a, other)
                     end
-                    if col.bounce then
-                        a.vel = vec2(col.bounce.x, col.bounce.y) - a.pos
+                    if a.shape.knockback then
+                        -- apply knockback impulse along collision normal
+                        local norm = (other.pos - a.pos):norm()
+                        log.debug('knockback', norm * a.shape.knockback)
+                        other.vel = other.vel + norm * a.shape.knockback
                     end
                 end
             else

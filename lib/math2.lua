@@ -103,13 +103,9 @@ end
 ---@param max_speed number
 ---@param mass number
 ---@return Vector.lua velocity
-M.steer = function(vel, move, max_speed, mass)
+M.steer = function(vel, move, max_speed, mass, dt)
     local scaled = move:norm() * max_speed
-    local steer = (scaled - vel) / mass
-    -- var desired_velocity = target_position - global_position
-    -- var scaled_desired_velocity = desired_velocity.normalized() * max_speed
-
-    -- var steer = (scaled_desired_velocity - velocity) / mass
+    local steer = (scaled - vel) * math.min(dt * mass, 1)
     return vel + steer
 end
 
