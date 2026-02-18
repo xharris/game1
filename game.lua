@@ -1,7 +1,7 @@
 return {
     SEED = 2,
 
-    CAMERA_ZOOM = 1.5,
+    CAMERA_ZOOM = 0.5,
     LEVEL_CELL_SIZE = vec2(5, 5),
     LEVEL_TILE_SIZE = vec2(32, 32),
     TILE_COLORS = {
@@ -9,7 +9,7 @@ return {
         '#03a9f4', -- entrance
         '#8BC34A', -- exit
     },
-    LEVEL_ALT = 20,
+    LEVEL_ALT = 600,
     ---@enum TILE
     TILE = {
         none = 0,
@@ -17,10 +17,7 @@ return {
         entrance = 2,
         exit = 3,
     },
-
-    --- current level
-    level = 0,
-
+    ---@type Level[]
     levels = {},
 
     maze = {

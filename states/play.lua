@@ -81,7 +81,7 @@ local draw_hitbox = function (a, c)
         c = c or mui.GREEN_50
         local x, y, w, h = world:getRect(a)
         setColor(color(c))
-        rectangle('line', x, y, w, h)
+        rectangle('line', x, y - (a.alt or 0), w, h)
     end
 end
 
@@ -155,7 +155,11 @@ local place_at_start_tile = function (tiles, a)
     if tile then
         local center = (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE) / 2
         a.pos = tile.pos + center
+        a.alt = tile.alt
+        a.alt_v = 0
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
+    else
+        log.warn("no start tile found", a)
     end
 end
 
@@ -219,6 +223,17 @@ local get_pathing = function (a, b)
     return path
 end
 
+---@param a Actor
+---@param b Actor
+---@param threshold? number if provided, allows a.alt to be within `threshold` above b.alt
+local is_same_alt = function (a, b, threshold)
+    if not (a.alt and b.alt) then return false end
+    if threshold then
+        return a.alt >= b.alt and a.alt - b.alt <= threshold
+    end
+    return a.alt == b.alt
+end
+
 ---@alias WorldResponse 'slide'|'touch'|'cross'|'bounce'
 
 local responses = {
@@ -240,7 +255,7 @@ local world_filter = function (item, other)
         return false
     end
 
-    if item.alt and other.alt and item.alt ~= other.alt then
+    if not is_same_alt(item, other) then
         -- different elevation
         return false
     end
@@ -262,6 +277,11 @@ local get_level_tiles = function (level)
 end
 
 ---@param level number
+local get_level_alt = function (level)
+    return level * game.LEVEL_ALT
+end
+
+---@param level number
 ---@param a Actor
 local enter_level = function (level, a)
     local tiles = get_level_tiles(level)
@@ -280,16 +300,19 @@ local enter_level = function (level, a)
         if a.item then
             a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
         end
+        log.debug("set start tile", a)
     end
     place_at_start_tile(tiles, a)
 end
 
-local add_level = function ()
+---@param theme LevelTheme
+local add_level = function (theme)
     local level_idx = #game.levels + 1
-    local alt = level_idx * game.LEVEL_ALT
+    local alt = get_level_alt(level_idx)
     ---@type Level
     local level = {
-        alt = alt
+        alt = alt,
+        theme = theme,
     }
     lume.push(game.levels, level)
     -- read map data from img
@@ -311,7 +334,7 @@ local add_level = function ()
             size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             shape = tile ~= TILE.none and {
                 tag = 'ground',
-                pos = vec2(alt, 0),
+                pos = vec2(0, 0),
                 size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             } or nil,
             alt = alt,
@@ -350,7 +373,10 @@ return {
         camera.set_scale(game.CAMERA_ZOOM)
 
         -- load level 1
-        local level_idx = add_level()
+        add_level('forest')
+
+        -- load level 2
+        local level_idx = add_level('castle')
         local player = add_actor(actors.player(1))
 
         -- add player to level
@@ -359,7 +385,11 @@ return {
 
     update = function (dt)
         tick.update(dt)
-        for i, a in ipairs(game.actors) do
+        for _, a in ipairs(game.actors) do
+            if a.player then
+                -- set camera position
+                camera.set_pos(a.pos.x, a.pos.y - (a.alt or 0))
+            end
             if a.move_dir then
                 -- movement input
                 local movex, movey = 0, 0
@@ -371,7 +401,6 @@ return {
                 a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
             end
             if a.player then
-
                 if a.move_dir:getmag() > 0 then
                     a.aim_dir = a.move_dir:norm()
                 elseif not a.aim_dir then
@@ -381,10 +410,9 @@ return {
                 -- mouse aim direction
                 local mx, my = love.mouse.getPosition()
                 mx, my = camera.to_world(mx, my)
-                a.aim_dir = (vec2(mx, my) - a.pos):norm()
+                local pos = a.pos - vec2(0, a.alt or 0)
+                a.aim_dir = (vec2(mx, my) - pos):norm()
 
-                -- set camera position
-                camera.set_pos(a.pos.x, a.pos.y)
                 -- use item
                 if a.inventory and #a.inventory.items > 0 then
                     local item = a.inventory.items[1]
@@ -411,6 +439,7 @@ return {
                                     knockback = 300,
                                     cd = 5,
                                 },
+                                alt = a.alt,
                             }
                         end, 0.1)
                         :after(function ()
@@ -420,12 +449,38 @@ return {
                     end
                 end
             end
-            -- move hitbox
             local target = a.pos
+            if a.player and a.alt then
+                -- floor/gravity
+                local gravity_step = 9.8
+                ---@param item Actor
+                local floors, floor_len = world:queryPoint(a.pos.x, a.pos.y, function (item)
+                    return item.shape.tag == 'ground' and is_same_alt(a, item, gravity_step + 1)
+                end)
+                local on_floor = floor_len > 0
+                if on_floor then
+                    -- snap to floor
+                    a.alt = floors[1].alt
+                    a.alt_v = 0
+                else
+                    -- apply gravity
+                    a.alt_v = (a.alt_v or 0) - gravity_step
+                    a.alt = a.alt + a.alt_v * dt
+                end
+            end
+            if a.alt and a.alt < get_level_alt(-1) then
+                -- out of bounds
+                if a.player then
+                    log.debug("out of bounds")
+                    enter_level(0, a)
+                end
+            end
             if a.vel then
+                -- apply velocity
                 target = a.pos + (a.vel * dt)
             end
             if a.shape then
+                -- move hitbox
                 target = target + a.shape.pos
                 local x, y, cols, len = world:move(a, target.x, target.y, world_filter)
                 a.pos:set(x, y)
@@ -474,10 +529,6 @@ return {
                         local norm = (other.pos - a.pos):norm()
                         other.vel = other.vel + norm * a.shape.knockback
                     end
-                    -- is above floor
-                    if a.player and other.shape.tag == 'ground' then
-                        
-                    end
                 end
             else
                 a.pos:set(target)
@@ -488,7 +539,7 @@ return {
     draw = function ()
         camera.push()
         -- draw actors
-        for i, a in ipairs(game.actors) do
+        for _, a in ipairs(game.actors) do
             local skip = false
             local size = a.size or vec2(32, 32)
             local off = a.off or vec2()
@@ -499,18 +550,20 @@ return {
             elseif a.player or a.enemy then
                 setColor(color(mui.GREEN_500))
             elseif a.level_tile and a.level_tile.type ~= TILE.none then
-                setColor(color(mui.GREY_50))
+                local level = game.levels[a.level_tile.level]
+                if level.theme == 'forest' then
+                    setColor(color(mui.GREEN_300))
+                elseif level.theme == 'castle' then
+                    setColor(color(mui.GREY_300))
+                end
             else
                 skip = true
             end
             if not skip then
                 xform:reset()
-                xform:translate(round(a.pos.x), round(a.pos.y)) -- position
+                xform:translate(round(a.pos.x), round(a.pos.y - (a.alt or 0))) -- position
                 xform:translate(round(off.x), round(off.y)) -- offset
                 
-                if a.alt then
-                    xform:translate(round(a.alt), 0)
-                end
                 push()
                 love.graphics.applyTransform(xform)
                 rectangle("fill", 0, 0, size.x, size.y)

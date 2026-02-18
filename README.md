@@ -55,10 +55,10 @@
 - [x] aim with mouse
 
 - [ ] levels
-  - each level has increased elevation
-  - actors can fall off edges of level
-  - actors die if they fall below lowest level
-  - actors can land on ground of lower level
+  - [x] each level has increased elevation
+  - [x] actors can fall off edges of level
+  - [x] actors can land on ground of lower level
+  - [ ] actors die if they fall below lowest level
 
 - [ ] reach exit to go to next floor
   - [ ] add new maze layout

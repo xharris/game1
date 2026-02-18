@@ -3,8 +3,11 @@
 ---@field update? fun(dt:number)
 ---@field draw? fun()
 
+---@alias LevelTheme 'forest'|'castle'
+
 ---@class Level
 ---@field alt number
+---@field theme LevelTheme
 
 ---@class LevelTile
 ---@field level number which level this belongs to
@@ -37,6 +40,7 @@
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
 ---@field alt? number altitude/elevation
+---@field alt_v? number alt velocity
 ---@field max_move_speed? number
 ---@field mass? number
 ---@field hp? number
@@ -47,8 +51,8 @@
 ---@field start_level? number
 ---@field start_tile? number tile index this actor spawned at, if they used an entrance
 ---@field inventory? {items:Item[], capacity:number}
----@field item? Item this actor is an item
+---@field item? Item this is an item
 ---@field shape? Shape
 ---@field range? number aim / attacks / projectiles
----@field level_tile? LevelTile
+---@field level_tile? LevelTile this is a level tile
 ---@field size? Vector.lua
