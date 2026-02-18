@@ -27,13 +27,14 @@
 ---@field knockback? number [tag=hit] collision knockback strength
 ---@field cd? number cooldown
 
----@alias Group 'level_tile'
+---@alias Group 'level_tile'|'player'
 
 ---@class Actor
 ---@field id? string
 ---@field group? Group must be set before calling add_actor
 ---@field owner? string id
 ---@field player? number
+---@field z? number draw order
 ---@field pos Vector.lua
 ---@field off? Vector.lua render offset
 ---@field vel? Vector.lua
@@ -56,3 +57,4 @@
 ---@field range? number aim / attacks / projectiles
 ---@field level_tile? LevelTile this is a level tile
 ---@field size? Vector.lua
+---@field level_exit? boolean this is a level exit

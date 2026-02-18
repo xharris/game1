@@ -15,7 +15,7 @@ local input = require 'input'
 local state
 
 function love.load()
-
+    love.graphics.setDefaultFilter("nearest", "nearest")
     state = require 'states.play'
     if state.load then
         state.load()

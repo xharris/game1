@@ -1,7 +1,7 @@
 return {
     SEED = 2,
 
-    CAMERA_ZOOM = 0.5,
+    CAMERA_ZOOM = 0.25,
     LEVEL_CELL_SIZE = vec2(5, 5),
     LEVEL_TILE_SIZE = vec2(32, 32),
     TILE_COLORS = {

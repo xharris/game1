@@ -81,7 +81,7 @@ local draw_hitbox = function (a, c)
         c = c or mui.GREEN_50
         local x, y, w, h = world:getRect(a)
         setColor(color(c))
-        rectangle('line', x, y - (a.alt or 0), w, h)
+        rectangle('line', x, y, w, h)
     end
 end
 
@@ -130,6 +130,7 @@ local add_actor = function (a)
         id = id + 1
         a.id = tostring(id)
     end
+    a.z = a.z or 0
     if not lume.find(game.actors, a) then
         lume.push(game.actors, a)
     end
@@ -150,8 +151,9 @@ end
 
 ---@param tiles Actor[]
 ---@param a Actor
-local place_at_start_tile = function (tiles, a)
-    local tile = a.start_tile and tiles[a.start_tile] or nil
+---@param idx number
+local place_at_level_tile = function (tiles, a, idx)
+    local tile = tiles[idx] or nil
     if tile then
         local center = (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE) / 2
         a.pos = tile.pos + center
@@ -288,27 +290,48 @@ local enter_level = function (level, a)
     if not a.start_level then
         a.start_level = level
     end
-    if not a.start_tile then
-        if a.enemy then
-            -- place enemy in random tile
-            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+    -- at starting level
+    if level == a.start_level then
+        if not a.start_tile then
+            if a.enemy then
+                -- place enemy in random tile
+                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            end
+            if a.player then
+                -- place at random entrance
+                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+            end
+            if a.item then
+                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            end
         end
-        if a.player then
-            -- place at random entrance
-            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
-        end
-        if a.item then
-            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
-        end
-        log.debug("set start tile", a)
+        place_at_level_tile(tiles, a, a.start_tile)
+    else
+        place_at_level_tile(tiles, a, randomchoice(get_tiles_of_type(tiles, TILE.entrance)))
     end
-    place_at_start_tile(tiles, a)
+end
+
+---Get Actor's current level based on `alt`
+---@param a Actor
+---@return Level? level, number level_index
+local get_current_level = function(a)
+    ---@type Level?
+    local nearest_level
+    local level_idx = 0
+    for i, level in ipairs(game.levels) do
+        if a.alt <= level.alt and (not nearest_level or level.alt < nearest_level.alt) then
+            nearest_level = level
+            level_idx = i
+        end
+    end
+    return nearest_level, level_idx
 end
 
 ---@param theme LevelTheme
 local add_level = function (theme)
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
+    log.debug("add level", level_idx, "alt", alt)
     ---@type Level
     local level = {
         alt = alt,
@@ -338,13 +361,25 @@ local add_level = function (theme)
                 size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             } or nil,
             alt = alt,
+            z = -1,
         }
         lume.push(level_tiles, level_tile)
     end
     -- set exit
     local tiles = get_level_tiles(level_idx)
     local exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
-    tiles[exit].level_tile.type = 3
+    local exit_tile = tiles[exit]
+    exit_tile.level_tile.type = 3
+    add_actor{
+        pos = exit_tile.pos + (game.LEVEL_CELL_SIZE / 2),
+        level_exit = true,
+        shape = {
+            tag = 'area',
+            pos = vec2(),
+            size = vec2(32, 32),
+        },
+        alt = alt
+    }
     -- setup actors
     local level_actors = {
         actors.slime(),
@@ -367,25 +402,94 @@ end
 
 local xform = love.math.newTransform()
 
+local get_z = function (a)
+    return (a.z or 0) + (a.alt or 0)
+end
+
+---@type table<string, number>
+local last_z = {}
+
+---@param a Actor
+---@param b Actor
+---@return boolean
+local sort_by_z = function (a, b)
+    return get_z(a) < get_z(b)
+end
+
+---@type table<string, table<number, love.Canvas>>
+local level_canvas = {}
+
+---@param a Actor
+---@param alt number
+local draw_actor = function (a, alt)
+    local skip = false
+    local size = a.size or vec2(32, 32)
+    local off = a.off or vec2()
+    if a.item then
+        setColor(color(mui.AMBER_500))
+    elseif a.dmg then
+        setColor(color(mui.RED_500))
+    elseif a.player or a.enemy then
+        setColor(color(mui.GREEN_500))
+    elseif a.level_tile and a.level_tile.type ~= TILE.none then
+        local level = game.levels[a.level_tile.level]
+        if a.level_tile.type == TILE.exit then
+            setColor(color(mui.PURPLE_100))
+        elseif level.theme == 'forest' then
+            setColor(color(mui.GREEN_300))
+        elseif level.theme == 'castle' then
+            setColor(color(mui.GREY_300))
+        end
+    elseif a.level_exit then
+        setColor(color(mui.PURPLE_400))
+    else
+        skip = true
+    end
+    if not skip then
+        xform:reset()
+        xform:translate(round(a.pos.x), round(a.pos.y - (alt or 0))) -- position
+        xform:translate(round(off.x), round(off.y)) -- offset
+        
+        push()
+        love.graphics.applyTransform(xform)
+        rectangle("fill", 0, 0, size.x, size.y)
+        -- outline
+        setColor(color(mui.RED_400))
+        rectangle("line", 0, 0, size.x, size.y)
+        -- draw aim direction
+        if a.aim_dir and a.range then
+            local aim_pos = a.aim_dir * a.range
+            setColor(color(mui.RED_500))
+            rectangle("fill", -off.x+aim_pos.x-6, -off.y+aim_pos.y-6, 12, 12)
+        end
+        pop()
+        -- draw_hitbox(a)
+    end
+end
+
 ---@type State
 return {
     load = function ()
         camera.set_scale(game.CAMERA_ZOOM)
 
         -- load level 1
-        add_level('forest')
-
-        -- load level 2
-        local level_idx = add_level('castle')
-        local player = add_actor(actors.player(1))
+        local level_idx = add_level('forest')
 
         -- add player to level
-        enter_level(level_idx, player)
+        enter_level(level_idx, add_actor(actors.player(1)))
     end,
 
     update = function (dt)
         tick.update(dt)
+
+        local need_sort = false
         for _, a in ipairs(game.actors) do
+            local z = get_z(a)
+            if z ~= last_z[a.id] then
+                -- need z sorting
+                last_z[a.id] = z
+                need_sort = true
+            end
             if a.player then
                 -- set camera position
                 camera.set_pos(a.pos.x, a.pos.y - (a.alt or 0))
@@ -532,57 +636,69 @@ return {
                         local norm = (other.pos - a.pos):norm()
                         other.vel = other.vel + norm * a.shape.knockback
                     end
+                    -- level exit
+                    if a.player and other.level_exit then
+                        local _, current_level_idx = get_current_level(a)
+                        local next_level = current_level_idx + 1
+                        log.debug("player at alt", a.alt,"move from level", current_level_idx, "to", next_level)
+                        if next_level > #game.levels then
+                            add_level('castle')
+                        end
+                        enter_level(next_level, a)
+                    end
                 end
             else
                 a.pos:set(target)
             end
         end
+
+        if need_sort then
+            table.sort(game.actors, sort_by_z)
+        end
     end,
 
     draw = function ()
-        camera.push()
-        -- draw actors
-        for _, a in ipairs(game.actors) do
-            local skip = false
-            local size = a.size or vec2(32, 32)
-            local off = a.off or vec2()
-            if a.item then
-                setColor(color(mui.AMBER_500))
-            elseif a.dmg then
-                setColor(color(mui.RED_500))
-            elseif a.player or a.enemy then
-                setColor(color(mui.GREEN_500))
-            elseif a.level_tile and a.level_tile.type ~= TILE.none then
-                local level = game.levels[a.level_tile.level]
-                if level.theme == 'forest' then
-                    setColor(color(mui.GREEN_300))
-                elseif level.theme == 'castle' then
-                    setColor(color(mui.GREY_300))
-                end
-            else
-                skip = true
+
+        local players = get_group('player')
+        for _, player in ipairs(players) do
+            local canvases = level_canvas[player.id]
+            if not canvases then
+                canvases = {}
+                level_canvas[player.id] = canvases
             end
-            if not skip then
-                xform:reset()
-                xform:translate(round(a.pos.x), round(a.pos.y - (a.alt or 0))) -- position
-                xform:translate(round(off.x), round(off.y)) -- offset
-                
-                push()
-                love.graphics.applyTransform(xform)
-                rectangle("fill", 0, 0, size.x, size.y)
-                -- outline
-                setColor(color(mui.RED_400))
-                rectangle("line", 0, 0, size.x, size.y)
-                -- draw aim direction
-                if a.aim_dir and a.range then
-                    local aim_pos = a.aim_dir * a.range
-                    setColor(color(mui.RED_500))
-                    rectangle("fill", -off.x+aim_pos.x-6, -off.y+aim_pos.y-6, 12, 12)
+
+            -- clear level canvases
+            for _, canvas in ipairs(canvases) do
+                canvas:renderTo(function ()
+                    love.graphics.clear()
+                end)
+            end
+
+            -- draw actors in their respective level canvas
+            for _, a in ipairs(game.actors) do
+                local _, level_idx = get_current_level(a)
+                ---@type love.Canvas
+                local canvas
+                if level_idx > 0 then
+                    canvas = canvases[level_idx]
+                    if not canvas then
+                        canvas = love.graphics.newCanvas()
+                        canvases[level_idx] = canvas
+                    end
+                    love.graphics.setCanvas(canvas)
+                    camera.push()
+                    -- draw relative to player elevation
+                    draw_actor(a, a.alt)
+                    camera.pop()
+                    love.graphics.setCanvas()
                 end
-                pop()
-                draw_hitbox(a)
+            end
+
+            -- draw all level canvases (for this player)
+            for i, canvas in pairs(canvases) do
+                -- TODO change opacity based on `alt` difference
+                love.graphics.draw(canvas)
             end
         end
-        camera.pop()
     end
 }

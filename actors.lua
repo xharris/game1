@@ -8,6 +8,8 @@ M.HP = 10
 M.player = function (player)
     ---@type Actor
     return {
+        group = 'player',
+        z = 10,
         player = player,
         pos = vec2(),
         off = -vec2(16, 16),
@@ -29,6 +31,7 @@ end
 M.slime = function ()
     ---@type Actor
     return {
+        z = 10,
         enemy = 'slime',
         pos = vec2(),
         off = -vec2(16, 16),
@@ -53,6 +56,7 @@ end
 M.item = function (item)
     ---@type Actor
     return {
+        z = 10,
         item = clone(item),
         pos = vec2(),
         off = -vec2(16, 16),

@@ -60,9 +60,10 @@
   - [x] actors can land on ground of lower level
   - [x] actors die if they fall below lowest level
 
-- [ ] reach exit to go to next floor
-  - [ ] add new maze layout
-  - [ ] enemies, items, traps
+- [x] reach exit to go to next floor
+  - [x] add new maze layout
+  - [x] enemies, items, traps
+
 - lighting
 - enemy ai
   - chase player
