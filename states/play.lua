@@ -470,9 +470,12 @@ return {
             end
             if a.alt and a.alt < get_level_alt(-1) then
                 -- out of bounds
-                if a.player then
-                    log.debug("out of bounds")
-                    enter_level(0, a)
+                if a.start_level then
+                    log.debug("out of bounds, respawn at start")
+                    enter_level(a.start_level, a)
+                else
+                    log.debug("out of bounds, remove actor", a)
+                    remove_actor(a)
                 end
             end
             if a.vel then
