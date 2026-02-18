@@ -17,15 +17,17 @@ local randomchoice = lume.randomchoice
 local eq = math2.eq
 local floor = math.floor
 local find = lume.find
-local TILE = game.maze.TILE
+local TILE = game.TILE 
 local ripairs = lume.ripairs
 local round = math2.round
+local push = lume.fn(love.graphics.push, 'all')
+local pop = love.graphics.pop
 
 local world = bump.newWorld()
 
 ---@param path string
 ---@param colors string[]
----@return number[] tiles, number width
+---@return TILE[] tiles, number width
 local load_maze_from_img = function (path, colors)
     local data = love.image.newImageData(path)
     local tiles = {}
@@ -52,21 +54,7 @@ end
 
 ---@param idx number
 local tile_pos = function (idx)
-    return vec2(math2.array1d_to_array2d(idx, game.maze.width)) * game.maze.tile_size
-end
-
----@param idx number
----@param x number
----@param y number
-local get_tile_neighbor = function (idx, x, y)
-    local ix, iy = math2.array1d_to_array2d(idx, game.maze.width)
-    ix = ix + x
-    iy = iy + y
-    if ix < 1 or iy < 1 or ix > game.maze.width or iy > game.maze.width then
-        return 0
-    end
-    local idx = math2.array2d_to_array1d(ix, iy, game.maze.width)
-    return game.maze.tiles[idx] or 0
+    return vec2(math2.array1d_to_array2d(idx, game.LEVEL_CELL_SIZE.x)) * game.LEVEL_TILE_SIZE
 end
 
 ---@param idx number
@@ -86,43 +74,24 @@ local key = lume.memoize(function (...)
     return table.concat(id, '_')
 end)
 
----@param key any
+---@param a Actor
 ---@param c? string color
-local draw_hitbox = function (key, c)
-    if world:hasItem(key) then
+local draw_hitbox = function (a, c)
+    if world:hasItem(a) then
         c = c or mui.GREEN_50
-        local x, y, w, h = world:getRect(key)
+        local x, y, w, h = world:getRect(a)
         setColor(color(c))
         rectangle('line', x, y, w, h)
     end
 end
 
-local get_tile_idx = function (x, y)
-    x = floor(x / game.maze.width)
-    y = floor(y / game.maze.width)
-    return math2.array2d_to_array1d(x, y, game.maze.width)
-end
-
-local pos_is_walkable = function (x, y)
-    if x < 1 or y < 1 or x > game.maze.width or y > game.maze.width then
-        return false
-    end
-    local idx = math2.array2d_to_array1d(x, y, game.maze.width)
-    local tile = game.maze.tiles[idx]
-    return tile ~= 0
-end
-
-local get_players = function ()
-    return lume.filter(game.actors, function (a)
-        return a.player ~= nil
-    end)
-end
-
+---@param tiles Actor[]
 ---@param tile TILE
-local get_tiles_of_type = function (tile)
+---@return number[] indexes
+local get_tiles_of_type = function (tiles, tile)
     local idxs = {}
-    for i, t in ipairs(game.maze.tiles) do
-        if t == tile then
+    for i, a in ipairs(tiles) do
+        if a.level_tile and a.level_tile.type == tile then
             lume.push(idxs, i)
         end
     end
@@ -136,9 +105,9 @@ local ticks = {}
 local use_cd = function (name, cd)
     local timer = ticks[name]
     if not timer then
-        log.debug(name, "on cooldown")
+        -- log.debug(name, "on cooldown")
         ticks[name] = tick.delay(function ()
-            log.debug(name, "off cooldown")
+            -- log.debug(name, "off cooldown")
             ticks[name] = nil
         end, cd)
         return true
@@ -147,6 +116,13 @@ local use_cd = function (name, cd)
 end
 
 local id = 0
+---@type table<Group, Actor[]>
+local actor_groups = {}
+
+---@param group Group
+local get_group = function (group)
+    return actor_groups[group] or {}
+end
 
 ---@param a Actor
 local add_actor = function (a)
@@ -157,30 +133,40 @@ local add_actor = function (a)
     if not lume.find(game.actors, a) then
         lume.push(game.actors, a)
     end
+    -- add to group
+    if a.group and not actor_groups[a.group] then
+        actor_groups[a.group] = {}
+    end
+    if a.group then
+        lume.push(actor_groups[a.group], a)
+    end
     -- add hitbox
     local shape = a.shape
     if shape and not world:hasItem(a) then
         world:add(a, a.pos.x + shape.pos.x, a.pos.y + shape.pos.y, shape.size.x, shape.size.y)
     end
-    -- add starting tile
-    if not a.start_tile then
-        a.start_tile = get_tile_idx(a.pos:unpack())
-    end
     return a
 end
 
+---@param tiles Actor[]
 ---@param a Actor
-local place_at_start_tile = function (a)
-    if a.start_tile then
-        a.pos = tile_pos(a.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
+local place_at_start_tile = function (tiles, a)
+    local tile = a.start_tile and tiles[a.start_tile] or nil
+    if tile then
+        local center = (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE) / 2
+        a.pos = tile.pos + center
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
     end
 end
 
----@param actor Actor
-local remove_actor = function (actor)
-    world:remove(actor)
-    remove(game.actors, actor)
+---@param a Actor
+local remove_actor = function (a)
+    world:remove(a)
+    remove(game.actors, a)
+    -- remove from group
+    if a.group and actor_groups[a.group] then
+        remove(actor_groups[a.group], a)
+    end
 end
 
 ---@param a Actor
@@ -236,8 +222,8 @@ end
 ---@alias WorldResponse 'slide'|'touch'|'cross'|'bounce'
 
 local responses = {
-    body = {body='slide', wall='slide', fall='cross', area='cross'},
-    hit = {body='cross'},
+    body = {body='slide', wall='slide', fall='cross', area='cross', ground='cross'},
+    hit = {body='cross', hit='cross'},
 }
 
 ---@param item Actor
@@ -254,108 +240,121 @@ local world_filter = function (item, other)
         return false
     end
 
+    if item.alt and other.alt and item.alt ~= other.alt then
+        -- different elevation
+        return false
+    end
+
     return resp
 end
+
+---@param _ Actor
+local get_level_tile_canvas = lume.memoize(function (_)
+    return love.graphics.newCanvas()
+end)
+
+---@param level number
+local get_level_tiles = function (level)
+    local tiles = get_group('level_tile')
+    return lume.filter(tiles, function (t)
+        return t.level_tile.level == level
+    end)
+end
+
+---@param level number
+---@param a Actor
+local enter_level = function (level, a)
+    local tiles = get_level_tiles(level)
+    if not a.start_level then
+        a.start_level = level
+    end
+    if not a.start_tile then
+        if a.enemy then
+            -- place enemy in random tile
+            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+        end
+        if a.player then
+            -- place at random entrance
+            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+        end
+        if a.item then
+            a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+        end
+    end
+    place_at_start_tile(tiles, a)
+end
+
+local add_level = function ()
+    local level_idx = #game.levels + 1
+    local alt = level_idx * game.LEVEL_ALT
+    ---@type Level
+    local level = {
+        alt = alt
+    }
+    lume.push(game.levels, level)
+    -- read map data from img
+    local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
+    local ox, oy = -floor(width/2), -floor(width/2)
+    -- create LevelTiles
+    ---@type Actor[]
+    local level_tiles = {}
+    for i, tile in ipairs(tiles) do
+        local ix, iy = math2.array1d_to_array2d(i, width)
+        -- add level tile
+        local level_tile = add_actor{
+            group = 'level_tile',
+            pos = vec2(ix+ox, iy+oy) * (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE),
+            level_tile = {
+                level = level_idx,
+                type = tile
+            },
+            size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
+            shape = tile ~= TILE.none and {
+                tag = 'ground',
+                pos = vec2(alt, 0),
+                size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
+            } or nil,
+            alt = alt,
+        }
+        lume.push(level_tiles, level_tile)
+    end
+    -- set exit
+    local tiles = get_level_tiles(level_idx)
+    local exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+    tiles[exit].level_tile.type = 3
+    -- setup actors
+    local level_actors = {
+        actors.slime(),
+        actors.slime(),
+        actors.slime(),
+        actors.slime(),
+        actors.sword(),
+        actors.sword(),
+        actors.sword(),
+        actors.sword(),
+    }
+    for _, a in ipairs(level_actors) do
+        add_actor(a)
+        enter_level(level_idx, a)
+    end
+    -- TODO place traps
+    local canvas = get_level_tile_canvas
+    return level_idx
+end
+
+local xform = love.math.newTransform()
 
 ---@type State
 return {
     load = function ()
-        camera.set_scale(0.75, 0.75)
-        game.maze.tiles, game.maze.width = load_maze_from_img(
-            assets.maze_test, game.maze.tile_colors
-        )
+        camera.set_scale(game.CAMERA_ZOOM)
 
-        game.actors = {
-            actors.player(1),
-            actors.slime(),
-            actors.slime(),
-            actors.slime(),
-            actors.slime(),
-            actors.sword(),
-            actors.sword(),
-            actors.sword(),
-            actors.sword(),
-        }
+        -- load level 1
+        local level_idx = add_level()
+        local player = add_actor(actors.player(1))
 
-        if #get_tiles_of_type(TILE.entrance) == 0 then
-            log.error("no maze entrances")
-        end
-        -- set exits
-        local exit = randomchoice(get_tiles_of_type(TILE.entrance))
-        game.maze.tiles[exit] = 3
-        -- setup actors
-        for _, a in ipairs(game.actors) do
-            if a.enemy then
-                -- place enemy in random tile
-                a.start_tile = randomchoice(get_tiles_of_type(TILE.ground))
-            end
-            if a.player then
-                -- place at random entrance
-                a.start_tile = randomchoice(get_tiles_of_type(TILE.entrance))
-            end
-            if a.item then
-                a.start_tile = randomchoice(get_tiles_of_type(TILE.ground))
-            end
-        end
-        for _, a in ipairs(game.actors) do
-            add_actor(a)
-            place_at_start_tile(a)
-        end
-        for _ = 1, game.maze.trap_count do
-            local idx = randomchoice(get_tiles_of_type(TILE.ground))
-            -- TODO place trap here
-        end
-        -- add tile walls
-        -- TODO no walls. remove or have only some rooms with walls?
-        for i, tile in ipairs(game.maze.tiles) do
-            if tile ~= 0 then
-                local x, y, w, h = get_tile_bbox(i, game.maze.width, game.maze.tile_size)
-                if get_tile_neighbor(i, -1, 0) == 0 then
-                    -- wall left
-                    add_actor{
-                        pos = vec2(x-5, y),
-                        shape = {
-                            tag = 'wall',
-                            pos = vec2(),
-                            size = vec2(5, h),
-                        }
-                    }
-                end
-                if get_tile_neighbor(i, 1, 0) == 0 then
-                    -- wall right
-                    add_actor{
-                        pos = vec2(x+w, y),
-                        shape = {
-                            tag = 'wall',
-                            pos = vec2(),
-                            size = vec2(5, h),
-                        }
-                    }
-                end
-                if get_tile_neighbor(i, 0, -1) == 0 then
-                    -- wall top
-                    add_actor{
-                        pos = vec2(x, y-5),
-                        shape = {
-                            tag = 'wall',
-                            pos = vec2(),
-                            size = vec2(w, 5),
-                        }
-                    }
-                end
-                if get_tile_neighbor(i, 0, 1) == 0 then
-                    -- wall bottom
-                    add_actor{
-                        pos = vec2(x, y+h),
-                        shape = {
-                            tag = 'wall',
-                            pos = vec2(),
-                            size = vec2(w, 5),
-                        }
-                    }
-                end
-            end
-        end
+        -- add player to level
+        enter_level(level_idx, player)
     end,
 
     update = function (dt)
@@ -402,6 +401,7 @@ return {
                             sword_hitbox = add_actor{
                                 owner = a.id,
                                 pos = a.pos + (a.aim_dir * a.range),
+                                off = vec2(-16, -16),
                                 vel = a.vel,
                                 dmg = 5,
                                 shape = {
@@ -441,8 +441,11 @@ return {
                         if other.hp <= 0 then
                             if other.player then
                                 log.info("player died")
-                                other.pos = tile_pos(other.start_tile) + (vec2(game.maze.tile_size, game.maze.tile_size)/2)
-                                world:update(other, other.pos.x + other.shape.pos.x, other.pos.y + other.shape.pos.y)
+                                other.pos = tile_pos(other.start_tile) + (game.LEVEL_TILE_SIZE/2)
+                                world:update(other,
+                                    other.pos.x + other.shape.pos.x,
+                                    other.pos.y + other.shape.pos.y
+                                )
                                 other.hp = actors.HP
                             end
                             if other.enemy then
@@ -455,11 +458,6 @@ return {
                     if a.hp and other.dmg and use_cd(key('take damage', other.id, a.id), 3) then
                         a.hp = a.hp - other.dmg
                         if a.hp <= 0 then
-                            if a.player then
-                                log.info("player died")
-                                place_at_start_tile(a)
-                                a.hp = actors.HP
-                            end
                             if a.enemy then
                                 log.info("enemy died")
                                 remove_actor(a)
@@ -470,11 +468,15 @@ return {
                     if a.inventory and other.item then
                         pick_up_item(a, other)
                     end
-                    -- a knocks back other
+                    -- `a` knocks back `other`
                     if a.shape.knockback and other.vel and use_cd(key(a.id, 'knockback'), 0.5) then
-                        log.debug("knock back")
+                        log.debug("knock back", other)
                         local norm = (other.pos - a.pos):norm()
                         other.vel = other.vel + norm * a.shape.knockback
+                    end
+                    -- is above floor
+                    if a.player and other.shape.tag == 'ground' then
+                        
                     end
                 end
             else
@@ -485,37 +487,44 @@ return {
 
     draw = function ()
         camera.push()
-        -- draw maze
-        local tile_size = game.maze.tile_size
-        for i, tile in ipairs(game.maze.tiles) do
-            if tile ~= TILE.none then
-                local ix, iy = math2.array1d_to_array2d(i, game.maze.width)
-                local x, y = ix * tile_size, iy * tile_size
-                setColor(color(game.maze.tile_colors[tile]))
-                rectangle("fill", x, y, tile_size, tile_size)
-            end
-        end
         -- draw actors
         for i, a in ipairs(game.actors) do
             local skip = false
+            local size = a.size or vec2(32, 32)
+            local off = a.off or vec2()
             if a.item then
                 setColor(color(mui.AMBER_500))
             elseif a.dmg then
                 setColor(color(mui.RED_500))
             elseif a.player or a.enemy then
                 setColor(color(mui.GREEN_500))
+            elseif a.level_tile and a.level_tile.type ~= TILE.none then
+                setColor(color(mui.GREY_50))
             else
                 skip = true
             end
             if not skip then
-                rectangle("fill", round(a.pos.x-16), round(a.pos.y-16), 32, 32)
-                draw_hitbox(a)
+                xform:reset()
+                xform:translate(round(a.pos.x), round(a.pos.y)) -- position
+                xform:translate(round(off.x), round(off.y)) -- offset
+                
+                if a.alt then
+                    xform:translate(round(a.alt), 0)
+                end
+                push()
+                love.graphics.applyTransform(xform)
+                rectangle("fill", 0, 0, size.x, size.y)
+                -- outline
+                setColor(color(mui.RED_400))
+                rectangle("line", 0, 0, size.x, size.y)
                 -- draw aim direction
                 if a.aim_dir and a.range then
-                    local aim_pos = a.pos + (a.aim_dir * a.range)
+                    local aim_pos = a.aim_dir * a.range
                     setColor(color(mui.RED_500))
-                    rectangle("fill", aim_pos.x-6, aim_pos.y-6, 12, 12)
+                    rectangle("fill", -off.x+aim_pos.x-6, -off.y+aim_pos.y-6, 12, 12)
                 end
+                pop()
+                draw_hitbox(a)
             end
         end
         camera.pop()

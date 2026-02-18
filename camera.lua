@@ -52,9 +52,10 @@ M.set_pos = function (x, y, zoom, id)
 end
 
 ---@param x number
----@param y number
+---@param y? number
 ---@param id? string
 M.set_scale = function (x, y, id)
+    y = y or x
     id = id or M.DEFAULT_ID
     if not M.scale[id] then
         M.scale[id] = vec2()

@@ -10,6 +10,7 @@ M.player = function (player)
     return {
         player = player,
         pos = vec2(),
+        off = -vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
         max_move_speed = 300,
@@ -30,6 +31,7 @@ M.slime = function ()
     return {
         enemy = 'slime',
         pos = vec2(),
+        off = -vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
         max_move_speed = 200,
@@ -37,9 +39,9 @@ M.slime = function ()
         map_path = {},
         hp = M.HP,
         shape = {
-            tag = 'hit',
-            pos = vec2(-8, 0),
-            size = vec2(16, 8),
+            tag = 'body',
+            pos = vec2(-16, 0),
+            size = vec2(32, 16),
             knockback = 500,
             cd = 1,
         },
@@ -53,6 +55,7 @@ M.item = function (item)
     return {
         item = clone(item),
         pos = vec2(),
+        off = -vec2(16, 16),
         shape = {
             tag = 'area',
             pos = vec2(-16, -16),

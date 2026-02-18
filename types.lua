@@ -3,11 +3,18 @@
 ---@field update? fun(dt:number)
 ---@field draw? fun()
 
+---@class Level
+---@field alt number
+
+---@class LevelTile
+---@field level number which level this belongs to
+---@field type TILE
+
 ---@class Item
 ---@field name string
 ---@field cooldown? number
 
----@alias ShapeTag 'fall'|'wall'|'body'|'hit'|'area'
+---@alias ShapeTag 'wall'|'body'|'hit'|'area'|'ground'
 
 ---@class Shape
 ---@field tag ShapeTag
@@ -17,14 +24,19 @@
 ---@field knockback? number [tag=hit] collision knockback strength
 ---@field cd? number cooldown
 
+---@alias Group 'level_tile'
+
 ---@class Actor
 ---@field id? string
+---@field group? Group must be set before calling add_actor
 ---@field owner? string id
 ---@field player? number
 ---@field pos Vector.lua
+---@field off? Vector.lua render offset
 ---@field vel? Vector.lua
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
+---@field alt? number altitude/elevation
 ---@field max_move_speed? number
 ---@field mass? number
 ---@field hp? number
@@ -32,8 +44,11 @@
 ---@field enemy? string
 ---@field map_path? {x:number, y:number}[]
 ---@field tile_path? {x:number, y:number}[]
+---@field start_level? number
 ---@field start_tile? number tile index this actor spawned at, if they used an entrance
 ---@field inventory? {items:Item[], capacity:number}
 ---@field item? Item this actor is an item
 ---@field shape? Shape
 ---@field range? number aim / attacks / projectiles
+---@field level_tile? LevelTile
+---@field size? Vector.lua

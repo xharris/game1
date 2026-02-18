@@ -1,13 +1,13 @@
 io.stdout:setvbuf("no")
 math.random = love.math.random
+vec2 = require 'lib.vector'
 game = require 'game'
-love.math.setRandomSeed(game.seed)
+love.math.setRandomSeed(game.SEED)
 
 local json = require 'lib.json'
 log = require 'lib.log'
 lume = require 'lib.lume'
 log.serialize = lume.serialize
-vec2 = require 'lib.vector'
 
 local input = require 'input'
 

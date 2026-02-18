@@ -1,5 +1,28 @@
 return {
-    seed = 1,
+    SEED = 2,
+
+    CAMERA_ZOOM = 1.5,
+    LEVEL_CELL_SIZE = vec2(5, 5),
+    LEVEL_TILE_SIZE = vec2(32, 32),
+    TILE_COLORS = {
+        '#ffffff', -- ground
+        '#03a9f4', -- entrance
+        '#8BC34A', -- exit
+    },
+    LEVEL_ALT = 20,
+    ---@enum TILE
+    TILE = {
+        none = 0,
+        ground = 1,
+        entrance = 2,
+        exit = 3,
+    },
+
+    --- current level
+    level = 0,
+
+    levels = {},
+
     maze = {
         trap_count = 2,
         width = 5,
@@ -7,13 +30,6 @@ return {
             '#ffffff', -- ground
             '#03a9f4', -- entrance
             '#8BC34A', -- exit
-        },
-        ---@enum TILE
-        TILE = {
-            none = 0,
-            ground = 1,
-            entrance = 2,
-            exit = 3,
         },
         ---@type TILE[]
         tiles = {
@@ -26,6 +42,7 @@ return {
         tile_size = 128,
         traps = {'poison_gas'},
     },
+
     ---@type Actor[]
     actors = {},
 }
