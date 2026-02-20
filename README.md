@@ -53,19 +53,18 @@
       - [x] 1 sec: swing off cooldown
     - [x] deals 5 dmg
 - [x] aim with mouse
-
 - [x] levels
   - [x] each level has increased elevation
   - [x] actors can fall off edges of level
   - [x] actors can land on ground of lower level
   - [x] actors die if they fall below lowest level
-
 - [x] reach exit to go to next floor
   - [x] add new maze layout
   - [x] enemies, items, traps
+- [x] simple lighting
 
-- lighting
 - enemy ai
+  - vision radius -> chase
   - chase player
     - know player tile index for X sec (chase timer)
     - having line of sight refreshes duration
@@ -84,3 +83,7 @@
 - enemies
 - traps
 - puzzles
+
+- better lighting
+  - https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/
+  - https://frankforce.com/2d-light-mapping/

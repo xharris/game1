@@ -1,5 +1,7 @@
 local M = {}
 
+local mui = require 'lib.mui'
+
 local clone = lume.clone
 
 M.HP = 10
@@ -25,6 +27,11 @@ M.player = function (player)
             size = vec2(32, 16),
         },
         range = 48,
+        light = {
+            color = mui.WHITE,
+            radius = 300,
+        },
+        faction = 'human',
     }
 end
 
@@ -48,6 +55,12 @@ M.slime = function ()
             knockback = 500,
             cd = 1,
         },
+        ai = {
+            vision_radius = 200,
+            chase_for = 2,
+        },
+        faction = 'wild_aggro',
+        hates = {'human'},
         -- tile_path pathing in tile grid
     }
 end

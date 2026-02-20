@@ -38,7 +38,9 @@ end
 local function error_printer(msg, layer)
     lume.serialize_with_quotes = true
 	msg =  (debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", ""))
-    msg = msg .. '\n---\n' .. lume.serialize(game) .. '\n---\n'
+    if game.LOG_GAME_STATE_ON_ERR then
+        msg = msg .. '\n---\n' .. lume.serialize(game) .. '\n---\n'
+    end
     return msg
 end
 

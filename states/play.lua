@@ -7,6 +7,7 @@ local bump = require 'lib.bump'
 local luastar = require 'lib.lua-star'
 local tick = require 'lib.tick'
 local actors = require 'actors'
+local light = require 'light'
 
 local steer = math2.steer
 local setColor = love.graphics.setColor
@@ -22,6 +23,9 @@ local ripairs = lume.ripairs
 local round = math2.round
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
+local clamp = lume.clamp
+local abs = math.abs
+local circle = love.graphics.circle
 
 local world = bump.newWorld()
 
@@ -119,10 +123,20 @@ local id = 0
 ---@type table<Group, Actor[]>
 local actor_groups = {}
 
+---@type table<Faction, Actor[]>
+local actor_factions = {}
+
 ---@param group Group
 local get_group = function (group)
     return actor_groups[group] or {}
 end
+
+---@param faction Faction
+local get_faction = function (faction)
+    return actor_factions[faction] or {}
+end
+
+local actor_light = {}
 
 ---@param a Actor
 local add_actor = function (a)
@@ -145,6 +159,17 @@ local add_actor = function (a)
     local shape = a.shape
     if shape and not world:hasItem(a) then
         world:add(a, a.pos.x + shape.pos.x, a.pos.y + shape.pos.y, shape.size.x, shape.size.y)
+    end
+    -- add lighting
+    if a.light then
+        light.add_light(a, {radius=a.light.radius})
+    end
+    -- add to faction
+    if a.faction then
+        if not actor_factions[a.faction] then
+            actor_factions[a.faction] = {}
+        end
+        lume.push(actor_factions[a.faction], a)
     end
     return a
 end
@@ -172,6 +197,10 @@ local remove_actor = function (a)
     -- remove from group
     if a.group and actor_groups[a.group] then
         remove(actor_groups[a.group], a)
+    end
+    -- remove from faction
+    if a.faction and actor_factions[a.faction] then
+        remove(actor_factions[a.faction], a)
     end
 end
 
@@ -207,22 +236,84 @@ local pick_up_item = function(a, item)
     return false
 end
 
+---@param pos Vector.lua
+---@param alt number
+---@return Actor? tile, number? tile_idx, number? level_idx
+local get_map_pos = function (pos, alt)
+    for l, level in ipairs(game.levels) do
+        if level.alt == alt then
+            -- check tiles in this level
+            for t, tile in ipairs(get_group('level_tile')) do
+                local size = vec2(
+                    game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
+                    game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
+                )
+                if tile.level_tile and
+                    pos.x >= tile.pos.x and
+                    pos.y >= tile.pos.y and
+                    pos.x <= tile.pos.x + size.x and
+                    pos.y <= tile.pos.y + size.y
+                then
+                    return tile, t, l
+                end
+            end
+        end
+    end
+    log.warn("could not find map pos at pos", pos, "alt", alt)
+end
+-- {x:684.06803259956,y:-1200} alt 600
+
 ---@param a Actor
 ---@param b Actor
+---@return Vector.lua[]?
 local get_pathing = function (a, b)
-    -- path to random player (test code)
-    local player = randomchoice(get_players())
-    local a_tile_idx = get_tile_idx(a.pos.x, a.pos.y)
-    local b_tile_idx = get_tile_idx(b.pos.x, b.pos.y)
-    local goal_x, goal_y = math2.array1d_to_array2d(b_tile_idx, game.maze.width)
-    local start_x, start_y = math2.array1d_to_array2d(a_tile_idx, game.maze.width)
+    local _, a_tile_idx, a_level_idx = get_map_pos(a.pos, a.alt or 0)
+    local _, b_tile_idx, b_level_idx = get_map_pos(b.pos, b.alt or 0)
+
+    if not a_level_idx or not b_tile_idx or not a_tile_idx or a_level_idx ~= b_level_idx then
+        return
+    end
+
+    local level = game.levels[a_level_idx]
+    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
+    local ox = -floor(level.width / 2)
+    local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
+    local map_size = level.width * tile_size
+    -- break up map into grid of size `step`
+    local step = game.LEVEL_TILE_SIZE:clone()
+
+    -- convert between world space and luastar grid space (0-based, always positive)
+    local to_grid = function (world)
+        return vec2(floor((world.x - min_world.x) / step.x), floor((world.y - min_world.y) / step.y))
+    end
+    local to_world = function (grid)
+        return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
+    end
+
+    local pos_is_walkable = function (x, y)
+        local tile = get_map_pos(to_world(vec2(x, y)), a.alt or 0)
+        return tile ~= nil and tile.level_tile.type ~= TILE.none
+    end
+
+    local start = to_grid(a.pos)
+    local goal = to_grid(b.pos)
+
+    log.debug('get path from', start, 'to', goal)
+    log.debug('map grid size', map_size.x / step.x, map_size.y / step.y)
+
     local path = luastar:find(
-        game.maze.width, game.maze.width, 
-        {x=start_x, y=start_y}, {x=goal_x, y=goal_y},
+        map_size.x / step.x, map_size.y / step.y,
+        start, goal,
         pos_is_walkable,
         true, true
     )
-    return path
+    if path then
+        for i, p in ipairs(path) do
+            -- convert back to world space (center of cell)
+            path[i] = to_world(p) + step / 2
+        end
+        return path
+    end
 end
 
 ---@param a Actor
@@ -332,15 +423,16 @@ local add_level = function (theme)
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
     log.debug("add level", level_idx, "alt", alt)
+    -- read map data from img
+    local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
+    local ox, oy = -floor(width/2), -floor(width/2)
     ---@type Level
     local level = {
         alt = alt,
         theme = theme,
+        width = width,
     }
     lume.push(game.levels, level)
-    -- read map data from img
-    local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
-    local ox, oy = -floor(width/2), -floor(width/2)
     -- create LevelTiles
     ---@type Actor[]
     local level_tiles = {}
@@ -456,6 +548,11 @@ local draw_actor = function (a, alt)
         -- outline
         setColor(color(mui.RED_400))
         rectangle("line", 0, 0, size.x, size.y)
+        -- vision radius
+        if a.ai and a.ai.vision_radius then
+            setColor(color(mui.YELLOW_300))
+            circle('line', 0, 0, a.ai.vision_radius)
+        end
         -- draw aim direction
         if a.aim_dir and a.range then
             local aim_pos = a.aim_dir * a.range
@@ -477,6 +574,7 @@ return {
 
         -- add player to level
         enter_level(level_idx, add_actor(actors.player(1)))
+
     end,
 
     update = function (dt)
@@ -496,7 +594,7 @@ return {
             end
             if a.move_dir then
                 -- movement input
-                local movex, movey = 0, 0
+                local movex, movey = a.move_dir.x, a.move_dir.y
                 if a.player then
                     movex, movey = input:get 'move'
                 end
@@ -650,6 +748,45 @@ return {
             else
                 a.pos:set(target)
             end
+            _, a.current_level = get_current_level(a)
+            -- lighting
+            if a.light then
+                light.move_light(a, a.pos.x, a.pos.y - (a.alt or 0))
+            end
+            local ai = a.ai
+            if ai then
+                if ai.path then
+                    if #ai.path == 0 then
+                        -- done pathing
+                        ai.path = nil
+                        a.move_dir:set(0, 0)
+                    else
+                        local waypoint = ai.path[1]
+                        if a.pos:dist(waypoint) < 20 then
+                            table.remove(ai.path, 1)
+                        else
+                            a.move_dir = (waypoint - a.pos):norm()
+                        end
+                    end
+                elseif a.hates then
+                    -- find a new target
+                    for _, hate in ipairs(a.hates) do
+                        local targets = get_faction(hate)
+                        for _, a2 in ipairs(targets) do
+                            if a.pos:dist(a2.pos) <= ai.vision_radius then
+                                -- path to this actor
+                                local path = get_pathing(a, a2)
+                                if path then
+                                    ai.path = path
+                                    log.debug('path to', ai.path)
+                                else
+                                    log.warn('could not get path ', a, 'to', a2)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
 
         if need_sort then
@@ -658,7 +795,6 @@ return {
     end,
 
     draw = function ()
-
         local players = get_group('player')
         for _, player in ipairs(players) do
             local canvases = level_canvas[player.id]
@@ -685,20 +821,31 @@ return {
                         canvas = love.graphics.newCanvas()
                         canvases[level_idx] = canvas
                     end
-                    love.graphics.setCanvas(canvas)
+                    -- love.graphics.setCanvas(canvas)
                     camera.push()
-                    -- draw relative to player elevation
+                    if not a.player and a.current_level then
+                        -- draw relative to player elevation
+                        local level = game.levels[a.current_level]
+                        local alt_diff = clamp(level.alt - player.alt, -game.LEVEL_ALT, game.LEVEL_ALT) / game.LEVEL_ALT
+                        setColor(1,1,1,1-abs(alt_diff))
+                        -- NOTE wont work until I start using spritesheets (non-primitive drawing)
+                    end
                     draw_actor(a, a.alt)
                     camera.pop()
-                    love.graphics.setCanvas()
+                    -- love.graphics.setCanvas()
                 end
             end
 
+            camera.push()
+            light.draw()
+            camera.pop()
+
             -- draw all level canvases (for this player)
-            for i, canvas in pairs(canvases) do
-                -- TODO change opacity based on `alt` difference
-                love.graphics.draw(canvas)
-            end
+            -- for i, canvas in pairs(canvases) do
+            --     -- TODO change opacity based on `alt` difference
+                
+            --     love.graphics.draw(canvas)
+            -- end
         end
     end
 }

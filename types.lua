@@ -8,6 +8,7 @@
 ---@class Level
 ---@field alt number
 ---@field theme LevelTheme
+---@field width number
 
 ---@class LevelTile
 ---@field level number which level this belongs to
@@ -27,7 +28,15 @@
 ---@field knockback? number [tag=hit] collision knockback strength
 ---@field cd? number cooldown
 
+---@class Ai
+---@field vision_radius number
+---@field chase_for? number limit to chase target (sec)
+---@field chase_cd? number
+---@field path? {x:number, y:number}[]
+
 ---@alias Group 'level_tile'|'player'
+
+---@alias Faction 'human'|'wild_aggro'
 
 ---@class Actor
 ---@field id? string
@@ -58,3 +67,8 @@
 ---@field level_tile? LevelTile this is a level tile
 ---@field size? Vector.lua
 ---@field level_exit? boolean this is a level exit
+---@field current_level? number
+---@field light? {color:string, radius:number}
+---@field ai? Ai
+---@field faction? Faction
+---@field hates? Faction[]
