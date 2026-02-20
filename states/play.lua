@@ -266,80 +266,6 @@ end
 -- {x:684.06803259956,y:-1200} alt 600
 
 ---@param a Actor
----@param b Vector.lua
----@return Vector.lua[]?
-local get_pathing = function (a, b)
-    if not a.current_level then
-        log.warn('a missing current_level', a)
-        return nil
-    end
-
-    local level = game.levels[a.current_level]
-    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
-    local ox = -floor(level.width / 2)
-    local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
-    local map_size = level.width * tile_size
-    -- break up map into grid of size `step`
-    local step = game.LEVEL_TILE_SIZE:clone()
-
-    -- convert between world space and luastar grid space (0-based, always positive)
-    local to_grid = function (world)
-        return vec2(
-            floor((world.x - min_world.x) / step.x),
-            floor((world.y - min_world.y) / step.y)
-        )
-    end
-    local to_world = function (grid)
-        return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
-    end
-
-    -- pre-build walkability table
-    -- TODO move to state update
-    local cells_x = tile_size.x / step.x  -- grid cells per tile
-    local cells_y = tile_size.y / step.y
-    local walkable = {}
-    for _, tile in ipairs(get_group('level_tile')) do
-        if tile.level_tile.level == a.current_level and tile.level_tile.type ~= TILE.none then
-            local g = to_grid(tile.pos)
-            for dy = 0, cells_y - 1 do
-                local row = g.y + dy
-                if not walkable[row] then walkable[row] = {} end
-                for dx = 0, cells_x - 1 do
-                    walkable[row][g.x + dx] = true
-                end
-            end
-        end
-    end
-    -- TODO end
-
-    local pos_is_walkable = function (x, y)
-        return walkable[y] ~= nil and walkable[y][x] == true
-    end
-
-    local start = to_grid(a.pos)
-    local goal = to_grid(b)
-
-    log.debug(
-        'get path from', start, 'to', goal, 
-        'map grid size', map_size.x / step.x, map_size.y / step.y
-    )
-
-    local path = luastar:find(
-        map_size.x / step.x, map_size.y / step.y,
-        start, goal,
-        pos_is_walkable,
-        true, true
-    )
-    if path then
-        for i, p in ipairs(path) do
-            -- convert back to world space (center of cell)
-            path[i] = to_world(p) + step / 2
-        end
-        return path
-    end
-end
-
----@param a Actor
 ---@param b Actor
 ---@param threshold? number if provided, allows a.alt to be within `threshold` above b.alt
 local is_same_alt = function (a, b, threshold)
@@ -539,15 +465,34 @@ local add_level = function (theme)
 end
 
 -- convert between world space and luastar grid space (0-based, always positive)
-local to_grid = function (world)
+---@param world Vector.lua
+---@param level_idx number
+local to_grid = function (world, level_idx)
+    local level = game.levels[level_idx]
+    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
+    local ox = -floor(level.width / 2)
+    local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
+    local map_size = level.width * tile_size
+    local step = game.LEVEL_TILE_SIZE:clone()
     return vec2(
         floor((world.x - min_world.x) / step.x),
         floor((world.y - min_world.y) / step.y)
     )
 end
-local to_world = function (grid)
+
+---@param grid Vector.lua
+---@param level_idx number
+local to_world = function (grid, level_idx)
+    local level = game.levels[level_idx]
+    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
+    local ox = -floor(level.width / 2)
+    local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
+    local map_size = level.width * tile_size
+    local step = game.LEVEL_TILE_SIZE:clone()
     return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
 end
+
+local all_walkable = {}
 
 ---@param level_idx number
 local update_walkable = function (level_idx)
@@ -557,8 +502,8 @@ local update_walkable = function (level_idx)
     local cells_y = tile_size.y / step.y
     local walkable = {}
     for _, tile in ipairs(get_group('level_tile')) do
-        if tile.level_tile.level == a.current_level and tile.level_tile.type ~= TILE.none then
-            local g = to_grid(tile.pos)
+        if tile.level_tile.level == level_idx and tile.level_tile.type ~= TILE.none then
+            local g = to_grid(tile.pos, level_idx)
             for dy = 0, cells_y - 1 do
                 local row = g.y + dy
                 if not walkable[row] then walkable[row] = {} end
@@ -567,6 +512,49 @@ local update_walkable = function (level_idx)
                 end
             end
         end
+    end
+    all_walkable[level_idx] = walkable
+end
+
+---@param a Actor
+---@param b Vector.lua
+---@return Vector.lua[]?
+local get_pathing = function (a, b)
+    if not a.current_level then
+        log.warn('a missing current_level', a)
+        return nil
+    end
+
+    local level = game.levels[a.current_level]
+    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
+    local map_size = level.width * tile_size
+    -- break up map into grid of size `step`
+    local step = game.LEVEL_TILE_SIZE:clone()
+
+    local walkable = all_walkable[a.current_level]
+    if not walkable then
+        return nil
+    end
+
+    local pos_is_walkable = function (x, y)
+        return walkable[y] ~= nil and walkable[y][x] == true
+    end
+
+    local start = to_grid(a.pos, a.current_level)
+    local goal = to_grid(b, a.current_level)
+
+    local path = luastar:find(
+        map_size.x / step.x, map_size.y / step.y,
+        start, goal,
+        pos_is_walkable,
+        true, true
+    )
+    if path then
+        for i, p in ipairs(path) do
+            -- convert back to world space (center of cell)
+            path[i] = to_world(p, a.current_level) + step / 2
+        end
+        return path
     end
 end
 
@@ -756,7 +744,7 @@ return {
                 end
             end
             local target = a.pos
-            if a.player then
+            if a.alt and a.move_dir then
                 -- floor/gravity
                 local gravity_step = 9.8
                 ---@type Actor[], number
@@ -937,6 +925,12 @@ return {
 
         if need_sort then
             table.sort(game.actors, sort_by_z)
+        end
+
+        if use_cd(key('update walkable'), 3) then
+            for i in ipairs(game.levels) do
+                update_walkable(i)
+            end
         end
     end,
 

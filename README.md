@@ -63,12 +63,11 @@
   - [x] enemies, items, traps
 - [x] simple lighting
 
-- enemy ai
-  - vision radius -> chase
-  - chase player
-    - know player tile index for X sec (chase timer)
-    - having line of sight refreshes duration
-    - when within same tile, use tile_path instead of map_path
+- [x] enemy ai
+  - [x] vision radius -> chase
+  - [x] chase player
+    - [~] know player tile index for X sec (chase timer)
+    - [~] having line of sight refreshes duration
 - traps
   - poison gas
     - triggered by pressure plate

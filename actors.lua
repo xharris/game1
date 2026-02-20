@@ -32,7 +32,7 @@ M.player = function (player)
             radius = 600, -- 300,
         },
         faction = 'human',
-        breadcrumbs = {capacity=3, cd=1, points={}},
+        breadcrumbs = {capacity=4, cd=0.2, points={}},
     }
 end
 
