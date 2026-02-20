@@ -9,6 +9,7 @@
 ---@field alt number
 ---@field theme LevelTheme
 ---@field width number
+---@field walkable Vector.lua[]
 
 ---@class LevelTile
 ---@field level number which level this belongs to
@@ -30,9 +31,9 @@
 
 ---@class Ai
 ---@field vision_radius number
----@field chase_for? number limit to chase target (sec)
----@field chase_cd? number
----@field path? {x:number, y:number}[]
+---@field breadcrumb_radius? number
+---@field last_seen? string actor id
+---@field path? Vector.lua[]
 
 ---@alias Group 'level_tile'|'player'
 
@@ -69,6 +70,7 @@
 ---@field level_exit? boolean this is a level exit
 ---@field current_level? number
 ---@field light? {color:string, radius:number}
----@field ai? Ai
+---@field ai? Ai targets must have breadcrumbs
 ---@field faction? Faction
 ---@field hates? Faction[]
+---@field breadcrumbs? {capacity:number, cd:number, points:Vector.lua} throttled position history

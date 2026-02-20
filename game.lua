@@ -2,7 +2,7 @@ return {
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
 
-    CAMERA_ZOOM = 0.75,
+    CAMERA_ZOOM = 0.5,
     -- big map square section
     LEVEL_CELL_SIZE = vec2(5, 5),
     -- tile in each map cell

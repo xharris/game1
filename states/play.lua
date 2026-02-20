@@ -26,6 +26,7 @@ local pop = love.graphics.pop
 local clamp = lume.clamp
 local abs = math.abs
 local circle = love.graphics.circle
+local line = love.graphics.line
 
 local world = bump.newWorld()
 
@@ -213,6 +214,7 @@ local drop_item = function (a, idx)
         table.remove(a.inventory.items, idx)
         local item = actors.item(dropped)
         item.pos = a.pos:clone()
+        item.alt = a.alt
         add_actor(item)
     end
 end
@@ -264,17 +266,15 @@ end
 -- {x:684.06803259956,y:-1200} alt 600
 
 ---@param a Actor
----@param b Actor
+---@param b Vector.lua
 ---@return Vector.lua[]?
 local get_pathing = function (a, b)
-    local _, a_tile_idx, a_level_idx = get_map_pos(a.pos, a.alt or 0)
-    local _, b_tile_idx, b_level_idx = get_map_pos(b.pos, b.alt or 0)
-
-    if not a_level_idx or not b_tile_idx or not a_tile_idx or a_level_idx ~= b_level_idx then
-        return
+    if not a.current_level then
+        log.warn('a missing current_level', a)
+        return nil
     end
 
-    local level = game.levels[a_level_idx]
+    local level = game.levels[a.current_level]
     local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
     local ox = -floor(level.width / 2)
     local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
@@ -284,22 +284,45 @@ local get_pathing = function (a, b)
 
     -- convert between world space and luastar grid space (0-based, always positive)
     local to_grid = function (world)
-        return vec2(floor((world.x - min_world.x) / step.x), floor((world.y - min_world.y) / step.y))
+        return vec2(
+            floor((world.x - min_world.x) / step.x),
+            floor((world.y - min_world.y) / step.y)
+        )
     end
     local to_world = function (grid)
         return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
     end
 
+    -- pre-build walkability table
+    -- TODO move to state update
+    local cells_x = tile_size.x / step.x  -- grid cells per tile
+    local cells_y = tile_size.y / step.y
+    local walkable = {}
+    for _, tile in ipairs(get_group('level_tile')) do
+        if tile.level_tile.level == a.current_level and tile.level_tile.type ~= TILE.none then
+            local g = to_grid(tile.pos)
+            for dy = 0, cells_y - 1 do
+                local row = g.y + dy
+                if not walkable[row] then walkable[row] = {} end
+                for dx = 0, cells_x - 1 do
+                    walkable[row][g.x + dx] = true
+                end
+            end
+        end
+    end
+    -- TODO end
+
     local pos_is_walkable = function (x, y)
-        local tile = get_map_pos(to_world(vec2(x, y)), a.alt or 0)
-        return tile ~= nil and tile.level_tile.type ~= TILE.none
+        return walkable[y] ~= nil and walkable[y][x] == true
     end
 
     local start = to_grid(a.pos)
-    local goal = to_grid(b.pos)
+    local goal = to_grid(b)
 
-    log.debug('get path from', start, 'to', goal)
-    log.debug('map grid size', map_size.x / step.x, map_size.y / step.y)
+    log.debug(
+        'get path from', start, 'to', goal, 
+        'map grid size', map_size.x / step.x, map_size.y / step.y
+    )
 
     local path = luastar:find(
         map_size.x / step.x, map_size.y / step.y,
@@ -356,6 +379,18 @@ local world_filter = function (item, other)
     return resp
 end
 
+---@param item Actor
+local line_of_sight_filter = function (item)
+    return item.shape.tag == 'wall'
+end
+
+---@param a Actor
+---@param pos Vector.lua
+local has_line_of_sight = function (a, pos)
+    local _, len = world:querySegment(a.pos.x, a.pos.y, pos.x, pos.y, line_of_sight_filter)
+    return len == 0
+end
+
 ---@param _ Actor
 local get_level_tile_canvas = lume.memoize(function (_)
     return love.graphics.newCanvas()
@@ -374,15 +409,20 @@ local get_level_alt = function (level)
     return level * game.LEVEL_ALT
 end
 
----@param level number
+---@param level_idx number
 ---@param a Actor
-local enter_level = function (level, a)
-    local tiles = get_level_tiles(level)
+local enter_level = function (level_idx, a)
+    local level = game.levels[level_idx]
+    local tiles = get_level_tiles(level_idx)
+    if not level or #tiles == 0 then
+        log.warn("invalid level", level_idx, "level", level, "tiles", #tiles)
+        return
+    end
     if not a.start_level then
-        a.start_level = level
+        a.start_level = level_idx
     end
     -- at starting level
-    if level == a.start_level then
+    if level_idx == a.start_level then
         if not a.start_tile then
             if a.enemy then
                 -- place enemy in random tile
@@ -400,6 +440,7 @@ local enter_level = function (level, a)
     else
         place_at_level_tile(tiles, a, randomchoice(get_tiles_of_type(tiles, TILE.entrance)))
     end
+    a.alt = level.alt
 end
 
 ---Get Actor's current level based on `alt`
@@ -409,6 +450,10 @@ local get_current_level = function(a)
     ---@type Level?
     local nearest_level
     local level_idx = 0
+    if not a.alt then
+        log.error("missing alt", a)
+        return nil, 0
+    end
     for i, level in ipairs(game.levels) do
         if a.alt <= level.alt and (not nearest_level or level.alt < nearest_level.alt) then
             nearest_level = level
@@ -431,6 +476,7 @@ local add_level = function (theme)
         alt = alt,
         theme = theme,
         width = width,
+        walkable = {},
     }
     lume.push(game.levels, level)
     -- create LevelTiles
@@ -490,6 +536,38 @@ local add_level = function (theme)
     -- TODO place traps
     local canvas = get_level_tile_canvas
     return level_idx
+end
+
+-- convert between world space and luastar grid space (0-based, always positive)
+local to_grid = function (world)
+    return vec2(
+        floor((world.x - min_world.x) / step.x),
+        floor((world.y - min_world.y) / step.y)
+    )
+end
+local to_world = function (grid)
+    return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
+end
+
+---@param level_idx number
+local update_walkable = function (level_idx)
+    local step = game.LEVEL_TILE_SIZE:clone()
+    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
+    local cells_x = tile_size.x / step.x  -- grid cells per tile
+    local cells_y = tile_size.y / step.y
+    local walkable = {}
+    for _, tile in ipairs(get_group('level_tile')) do
+        if tile.level_tile.level == a.current_level and tile.level_tile.type ~= TILE.none then
+            local g = to_grid(tile.pos)
+            for dy = 0, cells_y - 1 do
+                local row = g.y + dy
+                if not walkable[row] then walkable[row] = {} end
+                for dx = 0, cells_x - 1 do
+                    walkable[row][g.x + dx] = true
+                end
+            end
+        end
+    end
 end
 
 local xform = love.math.newTransform()
@@ -553,6 +631,11 @@ local draw_actor = function (a, alt)
             setColor(color(mui.YELLOW_300))
             circle('line', 0, 0, a.ai.vision_radius)
         end
+        if a.ai and a.ai.breadcrumb_radius then
+            setColor(color(mui.YELLOW_300))
+            circle('line', 0, 0, a.ai.breadcrumb_radius-3)
+            circle('line', 0, 0, a.ai.breadcrumb_radius+3)
+        end
         -- draw aim direction
         if a.aim_dir and a.range then
             local aim_pos = a.aim_dir * a.range
@@ -560,6 +643,27 @@ local draw_actor = function (a, alt)
             rectangle("fill", -off.x+aim_pos.x-6, -off.y+aim_pos.y-6, 12, 12)
         end
         pop()
+
+        local bc = a.breadcrumbs
+        if bc then
+            -- draw breadcrumbs
+            for _, pt in ipairs(bc.points) do
+                setColor(color(mui.BLUE_400))
+                circle("fill", pt.x, pt.y-a.alt, 6)
+            end
+        end
+
+        local ai = a.ai
+        if ai and ai.path and #ai.path > 1 then
+            -- draw ai
+            local pts = {}
+            for _, pt in ipairs(ai.path) do
+                lume.push(pts, pt.x, pt.y-a.alt)
+            end
+            setColor(color(mui.BLUE_400))
+            line(pts)
+        end
+
         -- draw_hitbox(a)
     end
 end
@@ -652,11 +756,13 @@ return {
                 end
             end
             local target = a.pos
-            if a.player and a.alt then
+            if a.player then
                 -- floor/gravity
                 local gravity_step = 9.8
+                ---@type Actor[], number
+                local floors, floor_len = world:queryPoint(a.pos.x, a.pos.y, 
                 ---@param item Actor
-                local floors, floor_len = world:queryPoint(a.pos.x, a.pos.y, function (item)
+                function (item)
                     return item.shape.tag == 'ground' and is_same_alt(a, item, gravity_step + 1)
                 end)
                 local on_floor = floor_len > 0
@@ -664,7 +770,7 @@ return {
                     -- snap to floor
                     a.alt = floors[1].alt
                     a.alt_v = 0
-                else
+                elseif a.alt then
                     -- apply gravity
                     a.alt_v = (a.alt_v or 0) - gravity_step
                     a.alt = a.alt + a.alt_v * dt
@@ -755,36 +861,76 @@ return {
             end
             local ai = a.ai
             if ai then
-                if ai.path then
-                    if #ai.path == 0 then
-                        -- done pathing
-                        ai.path = nil
-                        a.move_dir:set(0, 0)
-                    else
-                        local waypoint = ai.path[1]
-                        if a.pos:dist(waypoint) < 20 then
-                            table.remove(ai.path, 1)
-                        else
-                            a.move_dir = (waypoint - a.pos):norm()
-                        end
-                    end
-                elseif a.hates then
+                if a.hates and use_cd(key(a.id, 'chase enemy'), 0.25) then
                     -- find a new target
+                    ai.path = nil
+                    a.move_dir:set(0, 0)
                     for _, hate in ipairs(a.hates) do
                         local targets = get_faction(hate)
                         for _, a2 in ipairs(targets) do
-                            if a.pos:dist(a2.pos) <= ai.vision_radius then
-                                -- path to this actor
-                                local path = get_pathing(a, a2)
-                                if path then
-                                    ai.path = path
-                                    log.debug('path to', ai.path)
-                                else
-                                    log.warn('could not get path ', a, 'to', a2)
+                            -- same level and has breadcrumbs
+                            if
+                                a.alt and a2.alt and a.alt == a2.alt
+                            then
+                                if a.pos:dist(a2.pos) <= ai.vision_radius and has_line_of_sight(a, a2.pos) then
+                                    -- path to actor
+                                    ai.path = get_pathing(a, a2.pos)
+                                    ai.last_seen = a2.id
+                                    
+                                elseif
+                                    ai.breadcrumb_radius and
+                                    ai.last_seen == a2.id
+                                then
+                                    if
+                                        a.pos:dist(a2.pos) > ai.breadcrumb_radius or
+                                        not a2.breadcrumbs or #a2.breadcrumbs.points == 0
+                                    then
+                                        ai.last_seen = nil
+                                    else
+                                        -- path to a breadcrumb
+                                        for _, pt in ipairs(a2.breadcrumbs.points) do
+                                            if has_line_of_sight(a, pt) then
+                                                ai.path = get_pathing(a, pt)
+                                            end
+                                        end
+                                    end
                                 end
                             end
+                            if ai.path then break end
                         end
+                        if ai.path then break end
                     end
+                end
+
+                if ai.path and #ai.path == 0 then
+                    -- done pathing
+                    ai.path = nil
+                    a.move_dir:set(0, 0)
+                end
+
+                -- get waypoint
+                ---@type Vector.lua?
+                local waypoint
+                if ai.path and #ai.path > 0 then
+                    waypoint = ai.path[1]
+                end
+
+                if waypoint then
+                    -- move to waypoint
+                    a.move_dir = (waypoint - a.pos):norm()
+                end
+
+                -- get next waypoint
+                if waypoint and a.pos:dist(waypoint) < 20 and ai.path and #ai.path > 0 then
+                    table.remove(ai.path, 1)
+                end
+
+            end
+            local bc = a.breadcrumbs
+            if bc and use_cd(key(a.id, 'leave breadcrumb'), bc.cd) then
+                lume.push(bc.points, a.pos:clone())
+                if #bc.points > bc.capacity then
+                    table.remove(bc.points, 1)
                 end
             end
         end
@@ -810,7 +956,8 @@ return {
                 end)
             end
 
-            -- draw actors in their respective level canvas
+            camera.push()
+            -- draw actors
             for _, a in ipairs(game.actors) do
                 local _, level_idx = get_current_level(a)
                 ---@type love.Canvas
@@ -822,7 +969,6 @@ return {
                         canvases[level_idx] = canvas
                     end
                     -- love.graphics.setCanvas(canvas)
-                    camera.push()
                     if not a.player and a.current_level then
                         -- draw relative to player elevation
                         local level = game.levels[a.current_level]
@@ -831,12 +977,9 @@ return {
                         -- NOTE wont work until I start using spritesheets (non-primitive drawing)
                     end
                     draw_actor(a, a.alt)
-                    camera.pop()
                     -- love.graphics.setCanvas()
                 end
             end
-
-            camera.push()
             light.draw()
             camera.pop()
 

@@ -29,9 +29,10 @@ M.player = function (player)
         range = 48,
         light = {
             color = mui.WHITE,
-            radius = 300,
+            radius = 600, -- 300,
         },
         faction = 'human',
+        breadcrumbs = {capacity=3, cd=1, points={}},
     }
 end
 
@@ -56,7 +57,8 @@ M.slime = function ()
             cd = 1,
         },
         ai = {
-            vision_radius = 200,
+            vision_radius = 400,
+            breadcrumb_radius = 800,
             chase_for = 2,
         },
         faction = 'wild_aggro',
