@@ -45,8 +45,9 @@
 ---@field owner? string id
 ---@field player? number
 ---@field z? number draw order
----@field pos Vector.lua
+---@field pos? Vector.lua
 ---@field off? Vector.lua render offset
+---@field scale? Vector.lua render scale
 ---@field vel? Vector.lua
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua

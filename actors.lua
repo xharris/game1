@@ -1,6 +1,7 @@
 local M = {}
 
 local mui = require 'lib.mui'
+local assets = require 'assets'
 
 local clone = lume.clone
 
@@ -14,10 +15,10 @@ M.player = function (player)
         z = 10,
         player = player,
         pos = vec2(),
-        off = -vec2(16, 16),
+        off = vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
-        max_move_speed = 300,
+        max_move_speed = 200,
         mass = 10,
         hp = M.HP,
         inventory = {capacity=1, items={M.sword().item}},
@@ -33,6 +34,24 @@ M.player = function (player)
         },
         faction = 'human',
         breadcrumbs = {capacity=4, cd=0.2, points={}},
+        sprite = {
+            path = assets.player,
+            frames = vec2(7, 1),
+            frame = 1,
+        },
+        scale = vec2(2, 2),
+        hands = {
+            left = {
+                dist = 50,
+                r = 45,
+                state = 1,
+            },
+            right = {
+                dist = 50,
+                r = -45,
+                state = 1,
+            },
+        }
     }
 end
 

@@ -6,8 +6,13 @@ local xform = love.math.newTransform()
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
 local round = math2.round
+local ease = math2.ease
+local smooth = lume.smooth
 
 M.DEFAULT_ID = 'default'
+
+---@type number?
+M.position_smoothing = nil
 
 ---@type table<string, Vector.lua>
 M.pos = {}
@@ -43,12 +48,18 @@ end
 ---@param x number
 ---@param y number
 ---@param id? string
-M.set_pos = function (x, y, zoom, id)
+M.set_pos = function (x, y, id)
     id = id or M.DEFAULT_ID
-    if not M.pos[id] then
-        M.pos[id] = vec2()
+    local pos = M.pos[id]
+    if not pos then
+        pos = vec2()
     end
-    M.pos[id]:set(x, y)
+    if not M.position_smoothing then
+        pos:set(x, y)
+    else
+        pos:set(smooth(pos.x, x, M.position_smoothing), smooth(pos.y, y, M.position_smoothing))
+    end
+    M.pos[id] = pos
 end
 
 ---@param x number

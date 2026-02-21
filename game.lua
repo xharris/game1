@@ -2,9 +2,9 @@ return {
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
 
-    CAMERA_ZOOM = 0.5,
+    CAMERA_ZOOM = 1.75,
     -- big map square section
-    LEVEL_CELL_SIZE = vec2(5, 5),
+    LEVEL_CELL_SIZE = vec2(10, 10),
     -- tile in each map cell
     LEVEL_TILE_SIZE = vec2(32, 32),
     TILE_COLORS = {

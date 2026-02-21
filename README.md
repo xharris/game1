@@ -77,7 +77,16 @@
 
 ## After prototyping
 
-- player cannot die, but get knocked off stage and fall to lower floor (or off map and die)
+- [x] player cannot die, but get knocked off stage and fall to lower floor (or off map and die)
+
+- level
+  - [x] repeating tile texture
+- [ ] player
+  - spritesheets
+  - arms
+- [ ] alt circle shadows
+- [ ] sword
+  - swing animation
 
 - enemies
 - traps
@@ -86,3 +95,5 @@
 - better lighting
   - https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/
   - https://frankforce.com/2d-light-mapping/
+
+- culling cause why not

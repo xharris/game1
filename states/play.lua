@@ -9,6 +9,10 @@ local tick = require 'lib.tick'
 local actors = require 'actors'
 local light = require 'light'
 
+local render_level_tile = require 'render.level_tile'
+local render_sprite = require 'render.sprite'
+local render_hands = require 'render.hands'
+
 local steer = math2.steer
 local setColor = love.graphics.setColor
 local color = lume.color
@@ -425,7 +429,7 @@ local add_level = function (theme)
                 size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             } or nil,
             alt = alt,
-            z = -1,
+            z = -100 + iy,
         }
         lume.push(level_tiles, level_tile)
     end
@@ -577,80 +581,102 @@ end
 ---@type table<string, table<number, love.Canvas>>
 local level_canvas = {}
 
+local renderers = {
+    render_level_tile.draw,
+    render_sprite.draw,
+    render_hands.draw,
+}
+
 ---@param a Actor
 ---@param alt number
 local draw_actor = function (a, alt)
+
+
     local skip = false
     local size = a.size or vec2(32, 32)
     local off = a.off or vec2()
-    if a.item then
-        setColor(color(mui.AMBER_500))
-    elseif a.dmg then
-        setColor(color(mui.RED_500))
-    elseif a.player or a.enemy then
-        setColor(color(mui.GREEN_500))
-    elseif a.level_tile and a.level_tile.type ~= TILE.none then
-        local level = game.levels[a.level_tile.level]
-        if a.level_tile.type == TILE.exit then
-            setColor(color(mui.PURPLE_100))
-        elseif level.theme == 'forest' then
-            setColor(color(mui.GREEN_300))
-        elseif level.theme == 'castle' then
-            setColor(color(mui.GREY_300))
-        end
-    elseif a.level_exit then
-        setColor(color(mui.PURPLE_400))
-    else
-        skip = true
-    end
+    -- if a.item then
+    --     setColor(color(mui.AMBER_500))
+    -- elseif a.dmg then
+    --     setColor(color(mui.RED_500))
+    -- elseif a.enemy then
+    --     setColor(color(mui.GREEN_500))
+    -- elseif a.level_tile and a.level_tile.type ~= TILE.none then
+    --     local level = game.levels[a.level_tile.level]
+    --     if a.level_tile.type == TILE.exit then
+    --         setColor(color(mui.PURPLE_100))
+    --     elseif level.theme == 'forest' then
+    --         setColor(color(mui.GREEN_300))
+    --     elseif level.theme == 'castle' then
+    --         setColor(color(mui.GREY_300))
+    --     end
+    -- elseif a.level_exit then
+    --     setColor(color(mui.PURPLE_400))
+    -- else
+    --     skip = true
+    -- end
     if not skip then
         xform:reset()
         xform:translate(round(a.pos.x), round(a.pos.y - (alt or 0))) -- position
-        xform:translate(round(off.x), round(off.y)) -- offset
-        
+        -- rotate
+        if a.scale then
+            xform:scale(a.scale.x, a.scale.y)
+        end
+        xform:translate(-round(off.x), -round(off.y)) -- offset
+
         push()
         love.graphics.applyTransform(xform)
-        rectangle("fill", 0, 0, size.x, size.y)
+
+        setColor(1,1,1,1)
+        for _, renderer in ipairs(renderers) do
+            push()
+            renderer(a)
+            pop()
+        end
+
+        -- rectangle("fill", 0, 0, size.x, size.y)
+
         -- outline
-        setColor(color(mui.RED_400))
-        rectangle("line", 0, 0, size.x, size.y)
+        -- setColor(color(mui.RED_400))
+        -- rectangle("line", 0, 0, size.x, size.y)
+
         -- vision radius
-        if a.ai and a.ai.vision_radius then
-            setColor(color(mui.YELLOW_300))
-            circle('line', 0, 0, a.ai.vision_radius)
-        end
-        if a.ai and a.ai.breadcrumb_radius then
-            setColor(color(mui.YELLOW_300))
-            circle('line', 0, 0, a.ai.breadcrumb_radius-3)
-            circle('line', 0, 0, a.ai.breadcrumb_radius+3)
-        end
-        -- draw aim direction
-        if a.aim_dir and a.range then
-            local aim_pos = a.aim_dir * a.range
-            setColor(color(mui.RED_500))
-            rectangle("fill", -off.x+aim_pos.x-6, -off.y+aim_pos.y-6, 12, 12)
-        end
+        -- if a.ai and a.ai.vision_radius then
+        --     setColor(color(mui.YELLOW_300))
+        --     circle('line', 0, 0, a.ai.vision_radius)
+        -- end
+        -- if a.ai and a.ai.breadcrumb_radius then
+        --     setColor(color(mui.YELLOW_300))
+        --     circle('line', 0, 0, a.ai.breadcrumb_radius-3)
+        --     circle('line', 0, 0, a.ai.breadcrumb_radius+3)
+        -- end
+        -- -- draw aim direction
+        -- if a.aim_dir and a.range then
+        --     local aim_pos = a.aim_dir * a.range
+        --     setColor(color(mui.RED_500))
+        --     rectangle("fill", off.x+aim_pos.x-6, off.y+aim_pos.y-6, 12, 12)
+        -- end
+
+        -- local bc = a.breadcrumbs
+        -- if bc then
+        --     -- draw breadcrumbs
+        --     for _, pt in ipairs(bc.points) do
+        --         setColor(color(mui.BLUE_400))
+        --         circle("fill", pt.x, pt.y-a.alt, 6)
+        --     end
+        -- end
+
+        -- local ai = a.ai
+        -- if ai and ai.path and #ai.path > 1 then
+        --     -- draw ai
+        --     local pts = {}
+        --     for _, pt in ipairs(ai.path) do
+        --         lume.push(pts, pt.x, pt.y-a.alt)
+        --     end
+        --     setColor(color(mui.BLUE_400))
+        --     line(pts)
+        -- end
         pop()
-
-        local bc = a.breadcrumbs
-        if bc then
-            -- draw breadcrumbs
-            for _, pt in ipairs(bc.points) do
-                setColor(color(mui.BLUE_400))
-                circle("fill", pt.x, pt.y-a.alt, 6)
-            end
-        end
-
-        local ai = a.ai
-        if ai and ai.path and #ai.path > 1 then
-            -- draw ai
-            local pts = {}
-            for _, pt in ipairs(ai.path) do
-                lume.push(pts, pt.x, pt.y-a.alt)
-            end
-            setColor(color(mui.BLUE_400))
-            line(pts)
-        end
 
         -- draw_hitbox(a)
     end
@@ -680,9 +706,17 @@ return {
                 last_z[a.id] = z
                 need_sort = true
             end
-            if a.player then
+            if a.player and a.pos then
                 -- set camera position
-                camera.set_pos(a.pos.x, a.pos.y - (a.alt or 0))
+                local pos = a.pos
+                if a.move_dir then
+                    pos = pos + (a.move_dir * 30)
+                end
+                if a.aim_dir then
+                    pos = pos + (a.aim_dir * 30)
+                end
+                camera.set_pos(pos.x, pos.y - (a.alt or 0))
+                camera.position_smoothing = 0.1
             end
             if a.move_dir then
                 -- movement input
@@ -703,7 +737,7 @@ return {
 
                 -- mouse aim direction
                 local mx, my = love.mouse.getPosition()
-                mx, my = camera.to_world(mx, my)
+                mx, my = camera.to_world(mx - (a.off.x or 0), my - (a.off.y or 0))
                 local pos = a.pos - vec2(0, a.alt or 0)
                 a.aim_dir = (vec2(mx, my) - pos):norm()
 
