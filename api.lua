@@ -944,6 +944,7 @@ return {
     camera = camera,
     update = update,
     draw = draw,
+    key = key,
     mouse = {
         world_pos = shove.mouseToViewport,
     },

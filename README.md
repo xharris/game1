@@ -77,6 +77,19 @@
 
 ## After prototyping
 
+### Goals
+
+- smooth combat
+  - clear hitboxes
+  - animations
+- intense bosses
+- discover secrets
+- well-themed areas (distinct, consistent)
+  - forest
+  - spooky forest
+  - castle
+  - corporation (business)
+
 - [x] player cannot die, but get knocked off stage and fall to lower floor (or off map and die)
 
 - level
