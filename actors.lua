@@ -42,14 +42,16 @@ M.player = function (player)
         scale = vec2(2, 2),
         hands = {
             left = {
-                dist = 5,
+                dist = 8,
                 r = math.rad(45),
                 state = 1,
+                back = false,
             },
             right = {
-                dist = 5,
+                dist = 8,
                 r = -math.rad(45),
                 state = 1,
+                back = true,
             },
         }
     }

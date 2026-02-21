@@ -583,103 +583,32 @@ local level_canvas = {}
 
 local renderers = {
     render_level_tile.draw,
+    lume.fn(render_hands.draw, true),
     render_sprite.draw,
-    render_hands.draw,
+    lume.fn(render_hands.draw, false),
 }
 
 ---@param a Actor
 ---@param alt number
 local draw_actor = function (a, alt)
-
-
-    local skip = false
-    -- if a.item then
-    --     setColor(color(mui.AMBER_500))
-    -- elseif a.dmg then
-    --     setColor(color(mui.RED_500))
-    -- elseif a.enemy then
-    --     setColor(color(mui.GREEN_500))
-    -- elseif a.level_tile and a.level_tile.type ~= TILE.none then
-    --     local level = game.levels[a.level_tile.level]
-    --     if a.level_tile.type == TILE.exit then
-    --         setColor(color(mui.PURPLE_100))
-    --     elseif level.theme == 'forest' then
-    --         setColor(color(mui.GREEN_300))
-    --     elseif level.theme == 'castle' then
-    --         setColor(color(mui.GREY_300))
-    --     end
-    -- elseif a.level_exit then
-    --     setColor(color(mui.PURPLE_400))
-    -- else
-    --     skip = true
-    -- end
-    if not skip then
-        xform:reset()
-        xform:translate((a.pos.x), (a.pos.y - (alt or 0))) -- position
-        -- rotate
-        if a.scale then
-            xform:scale(a.scale.x, a.scale.y)
-        end
-        if a.off then
-            xform:translate(-(a.off.x), -(a.off.y)) -- offset
-        end
-
-        push()
-        love.graphics.applyTransform(xform)
-
-        setColor(1,1,1,1)
-        for _, renderer in ipairs(renderers) do
-            push()
-            renderer(a)
-            pop()
-        end
-
-        -- rectangle("fill", 0, 0, size.x, size.y)
-
-        -- outline
-        -- setColor(color(mui.RED_400))
-        -- rectangle("line", 0, 0, size.x, size.y)
-
-        -- vision radius
-        -- if a.ai and a.ai.vision_radius then
-        --     setColor(color(mui.YELLOW_300))
-        --     circle('line', 0, 0, a.ai.vision_radius)
-        -- end
-        -- if a.ai and a.ai.breadcrumb_radius then
-        --     setColor(color(mui.YELLOW_300))
-        --     circle('line', 0, 0, a.ai.breadcrumb_radius-3)
-        --     circle('line', 0, 0, a.ai.breadcrumb_radius+3)
-        -- end
-        -- -- draw aim direction
-        -- if a.aim_dir and a.range then
-        --     local aim_pos = a.aim_dir * a.range
-        --     setColor(color(mui.RED_500))
-        --     rectangle("fill", off.x+aim_pos.x-6, off.y+aim_pos.y-6, 12, 12)
-        -- end
-
-        -- local bc = a.breadcrumbs
-        -- if bc then
-        --     -- draw breadcrumbs
-        --     for _, pt in ipairs(bc.points) do
-        --         setColor(color(mui.BLUE_400))
-        --         circle("fill", pt.x, pt.y-a.alt, 6)
-        --     end
-        -- end
-
-        -- local ai = a.ai
-        -- if ai and ai.path and #ai.path > 1 then
-        --     -- draw ai
-        --     local pts = {}
-        --     for _, pt in ipairs(ai.path) do
-        --         lume.push(pts, pt.x, pt.y-a.alt)
-        --     end
-        --     setColor(color(mui.BLUE_400))
-        --     line(pts)
-        -- end
-        pop()
-
-        -- draw_hitbox(a)
+    -- set transform
+    xform:reset()
+    xform:translate((a.pos.x), (a.pos.y - (alt or 0)))
+    if a.scale then
+        xform:scale(a.scale.x, a.scale.y)
     end
+    if a.off then
+        xform:translate(-(a.off.x), -(a.off.y)) -- offset
+    end
+    push()
+    love.graphics.applyTransform(xform)
+    setColor(1,1,1,1)
+    for _, renderer in ipairs(renderers) do
+        push()
+        renderer(a)
+        pop()
+    end
+    pop()
 end
 
 ---@type State
@@ -710,7 +639,7 @@ return {
                 -- set camera position
                 local pos = a.pos
                 if a.move_dir then
-                    pos = pos + (a.move_dir * 30)
+                    pos = pos + (a.move_dir * 60)
                 end
                 if a.aim_dir then
                     pos = pos + (a.aim_dir * 30)

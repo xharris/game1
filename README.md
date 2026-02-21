@@ -92,8 +92,9 @@
 - traps
 - puzzles
 
-- better lighting
+- lighting/shaders
   - https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/
   - https://frankforce.com/2d-light-mapping/
+  - https://blog.frost.kiwi/dual-kawase/
 
 - culling cause why not

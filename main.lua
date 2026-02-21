@@ -19,15 +19,14 @@ shove = require 'lib.shove'
 local state
 
 function love.load()
+    game.DISPLAY = math.min(game.DISPLAY, love.window.getDisplayCount())
     local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
+    log.debug('resolution', dw * game.GAME_SCALE, 'x', dh * game.GAME_SCALE)
     shove.setResolution(dw * game.GAME_SCALE, dh * game.GAME_SCALE, {fitMethod="pixel", scalingFilter="nearest"})
     shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
         display=game.DISPLAY,
         fullscreen=game.FULLSCREEN,
     })
-
-    -- love.graphics.setDefaultFilter("nearest", "nearest")
-
     state = require 'states.play'
     if state.load then
         state.load()
