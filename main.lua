@@ -27,7 +27,7 @@ function love.load()
         display=game.DISPLAY,
         fullscreen=game.FULLSCREEN,
     })
-    state = require 'states.play'
+    state = require(game.STATE)
     if state.load then
         state.load()
     end

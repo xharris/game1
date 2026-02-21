@@ -4,6 +4,8 @@ return {
     WINDOW_SCALE = 0.5,
     GAME_SCALE = 0.75,
 
+    STATE = 'states.animation_test', -- 'states.play',
+
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
 
