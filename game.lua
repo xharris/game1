@@ -1,8 +1,13 @@
 return {
+    DISPLAY = 2,
+    FULLSCREEN = false,
+    WINDOW_SCALE = 0.5,
+    GAME_SCALE = 0.75,
+
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
 
-    CAMERA_ZOOM = 1.75,
+    CAMERA_ZOOM = 1.5,
     -- big map square section
     LEVEL_CELL_SIZE = vec2(10, 10),
     -- tile in each map cell
@@ -20,6 +25,7 @@ return {
         entrance = 2,
         exit = 3,
     },
+    
     ---@type Level[]
     levels = {},
     ---@type Actor[]

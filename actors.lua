@@ -18,7 +18,7 @@ M.player = function (player)
         off = vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
-        max_move_speed = 200,
+        max_move_speed = 100,
         mass = 10,
         hp = M.HP,
         inventory = {capacity=1, items={M.sword().item}},
@@ -42,13 +42,13 @@ M.player = function (player)
         scale = vec2(2, 2),
         hands = {
             left = {
-                dist = 50,
-                r = 45,
+                dist = 5,
+                r = math.rad(45),
                 state = 1,
             },
             right = {
-                dist = 50,
-                r = -45,
+                dist = 5,
+                r = -math.rad(45),
                 state = 1,
             },
         }

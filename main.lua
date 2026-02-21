@@ -10,12 +10,24 @@ lume = require 'lib.lume'
 log.serialize = lume.serialize
 
 local input = require 'input'
+shove = require 'lib.shove'
+
+-- love.window.setMode(1280, 720, {resizable=false, display=2})
+-- push.setupScreen(800, 600, {upscale="normal"})
 
 ---@type State?
 local state
 
 function love.load()
-    love.graphics.setDefaultFilter("nearest", "nearest")
+    local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
+    shove.setResolution(dw * game.GAME_SCALE, dh * game.GAME_SCALE, {fitMethod="pixel", scalingFilter="nearest"})
+    shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
+        display=game.DISPLAY,
+        fullscreen=game.FULLSCREEN,
+    })
+
+    -- love.graphics.setDefaultFilter("nearest", "nearest")
+
     state = require 'states.play'
     if state.load then
         state.load()
@@ -27,12 +39,22 @@ function love.update(dt)
     if state and state.update then
         state.update(dt)
     end
+    local is_mac = love.system.getOS() == 'OS X'
+    if input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
+        local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
+        shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
+            display=game.DISPLAY,
+            fullscreen=not love.window.getFullscreen(),
+        })
+    end
 end
 
 function love.draw()
+    shove.beginDraw()
     if state and state.draw then
         state.draw()
     end
+    shove.endDraw()
 end
 
 local function error_printer(msg, layer)

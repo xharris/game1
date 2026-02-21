@@ -593,8 +593,6 @@ local draw_actor = function (a, alt)
 
 
     local skip = false
-    local size = a.size or vec2(32, 32)
-    local off = a.off or vec2()
     -- if a.item then
     --     setColor(color(mui.AMBER_500))
     -- elseif a.dmg then
@@ -617,12 +615,14 @@ local draw_actor = function (a, alt)
     -- end
     if not skip then
         xform:reset()
-        xform:translate(round(a.pos.x), round(a.pos.y - (alt or 0))) -- position
+        xform:translate((a.pos.x), (a.pos.y - (alt or 0))) -- position
         -- rotate
         if a.scale then
             xform:scale(a.scale.x, a.scale.y)
         end
-        xform:translate(-round(off.x), -round(off.y)) -- offset
+        if a.off then
+            xform:translate(-(a.off.x), -(a.off.y)) -- offset
+        end
 
         push()
         love.graphics.applyTransform(xform)
@@ -736,7 +736,7 @@ return {
                 end
 
                 -- mouse aim direction
-                local mx, my = love.mouse.getPosition()
+                local _, mx, my = shove.mouseToViewport()
                 mx, my = camera.to_world(mx - (a.off.x or 0), my - (a.off.y or 0))
                 local pos = a.pos - vec2(0, a.alt or 0)
                 a.aim_dir = (vec2(mx, my) - pos):norm()

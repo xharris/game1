@@ -3,8 +3,8 @@ local M = {}
 local math2 = require 'lib.math2'
 
 local xform = love.math.newTransform()
-local push = lume.fn(love.graphics.push, 'all')
-local pop = love.graphics.pop
+local love_push = lume.fn(love.graphics.push, 'all')
+local love_pop = love.graphics.pop
 local round = math2.round
 local ease = math2.ease
 local smooth = lume.smooth
@@ -27,7 +27,7 @@ local update_xform = function (id)
         M.pos[id] = vec2()
     end
     xform:reset()
-    local ww, wh = love.graphics.getDimensions()
+    local ww, wh = shove.getViewportDimensions()
 
     local pos = M.pos[id]
     if not M.pos[id] then
@@ -42,7 +42,7 @@ local update_xform = function (id)
 
     xform:translate(ww/2, wh/2)
     xform:scale(scale.x, scale.y)
-    xform:translate(-pos.x, -pos.y)
+    xform:translate(-pos.x, -pos.y)---round(pos.x), -round(pos.y))
 end
 
 ---@param x number
@@ -54,11 +54,10 @@ M.set_pos = function (x, y, id)
     if not pos then
         pos = vec2()
     end
-    if not M.position_smoothing then
-        pos:set(x, y)
-    else
-        pos:set(smooth(pos.x, x, M.position_smoothing), smooth(pos.y, y, M.position_smoothing))
+    if M.position_smoothing then
+        x, y = smooth(pos.x, x, M.position_smoothing), smooth(pos.y, y, M.position_smoothing)
     end
+    pos:set(x, y)
     M.pos[id] = pos
 end
 
@@ -76,13 +75,13 @@ end
 
 ---@param id? string
 M.push = function(id)
-    push()
+    love_push()
     update_xform(id)
     love.graphics.applyTransform(xform)
 end
 
 M.pop = function()
-    pop()
+    love_pop()
 end
 
 ---@param x number
