@@ -582,9 +582,11 @@ local level_canvas = {}
 
 local renderers = {
     render_level_tile.draw,
-    lume.fn(render_hands.draw, true),
+    lume.fn(render_hands.draw, render_hands.LAYER.back_1),
+    lume.fn(render_hands.draw, render_hands.LAYER.back_2),
     render_sprite.draw,
-    lume.fn(render_hands.draw, false),
+    lume.fn(render_hands.draw, render_hands.LAYER.front_1),
+    lume.fn(render_hands.draw, render_hands.LAYER.front_2),
 }
 
 ---@param a Actor

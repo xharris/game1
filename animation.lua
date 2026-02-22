@@ -74,8 +74,8 @@ local do_first_step = function (twn)
         twn.tween = tween.new(
             step.duration == 0 and 0.0001 or step.duration,
             twn.subject,
-            step.target,
-            steppedEase(step.step, step.snap, step.bias)
+            step.target
+             -- steppedEase(step.step, step.snap, step.bias)
         )
         return true
     end

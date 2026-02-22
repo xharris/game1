@@ -1,3 +1,4 @@
+
 table.unpack = table.unpack or unpack
 io.stdout:setvbuf("no")
 math.random = love.math.random
@@ -5,12 +6,12 @@ vec2 = require 'lib.vector'
 game = require 'game'
 love.math.setRandomSeed(game.SEED)
 
-local json = require 'lib.json'
 log = require 'lib.log'
 lume = require 'lib.lume'
 log.serialize = lume.serialize
 
 local input = require 'input'
+local animation = require 'animation'
 shove = require 'lib.shove'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
@@ -39,6 +40,7 @@ function love.update(dt)
     if state and state.update then
         state.update(dt)
     end
+    animation.update(dt)
     local is_mac = love.system.getOS() == 'OS X'
     if input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
         local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)

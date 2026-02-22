@@ -2,6 +2,7 @@ local M = {}
 
 local mui = require 'lib.mui'
 local assets = require 'assets'
+local render_hands = require 'render.hands'
 
 local clone = lume.clone
 
@@ -44,28 +45,32 @@ M.player = function (player)
         hands = {
             left = {
                 dist = 8,
-                r = math.rad(45),
-                state = 1,
-                back = false,
+                arm_r = math.rad(45),
+                state = render_hands.STATE.neutral,
+                layer = render_hands.LAYER.back_1,
+                item_layer = render_hands.LAYER.back_2,
                 sprite = {
                     frame = 1,
                     frames = vec2(3, 1),
                     path = assets.hand,
                     off = vec2(8, 8),
                     scale = vec2(0.8, 0.8),
+                    r = math.rad(0),
                 },
             },
             right = {
                 dist = 8,
-                r = -math.rad(45),
-                state = 1,
-                back = true,
+                arm_r = -math.rad(45),
+                state = render_hands.STATE.neutral,
+                layer = render_hands.LAYER.front_2,
+                item_layer = render_hands.LAYER.front_1,
                 sprite = {
                     frame = 1,
                     frames = vec2(3, 1),
                     path = assets.hand,
                     off = vec2(8, 8),
                     scale = vec2(0.8, 0.8),
+                    r = math.rad(0),
                 },
             },
         }
@@ -133,6 +138,7 @@ M.sword = function ()
             path = assets.sword,
             frame = 1,
             frames = vec2(1, 1),
+            off = vec2(16, 25),
         }
     )
 end

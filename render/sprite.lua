@@ -8,6 +8,7 @@ local M = {}
 ---@field r? number
 ---@field scale? Vector.lua
 ---@field off? Vector.lua
+---@field debug? boolean
 
 ---@class Actor
 ---@field sprite? Sprite
@@ -50,9 +51,11 @@ M.draw_sprite = function (sprite)
     local img, quad = M.get_objects(sprite.path, sprite.frames.x, sprite.frames.y)
     local pop = M.transform(sprite)
     draw(img, quad)
-    set_color(lume.color(mui.RED_400))
-    local _, _, w, h = quad:getViewport()
-    rectangle("line", 0, 0, w, h)
+    if sprite.debug then
+        set_color(lume.color(mui.RED_400))
+        local _, _, w, h = quad:getViewport()
+        rectangle("line", 0, 0, w, h)
+    end
     pop()
 end
 

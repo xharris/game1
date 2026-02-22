@@ -2,11 +2,12 @@ local M = {}
 
 ---@class Hand
 ---@field dist number
----@field r number 0 is straight down, -left  +right
----@field back boolean
+---@field arm_r number 0 is straight down, -left  +right
+---@field layer hand_layer
 ---@field sprite? Sprite
 ---@field state? hand_state
 ---@field item? Sprite
+---@field item_layer? hand_layer
 
 ---@alias Hands table<string, Hand>
 
@@ -18,6 +19,8 @@ local math2 = require 'lib.math2'
 local render_sprite = require 'render.sprite'
 
 local transform = math2.transform
+local rad = math.rad
+local floor = math.floor
 
 ---@enum hand_state
 M.STATE = {
@@ -26,9 +29,17 @@ M.STATE = {
     point = 3,
 }
 
----@param back boolean
+---@enum hand_layer
+M.LAYER = {
+    back_1 = 1,
+    back_2 = 2,
+    front_1 = 3,
+    front_2 = 4,
+}
+
+---@param layer hand_layer
 ---@param a Actor
-M.draw = function (back, a)
+M.draw = function (layer, a)
     local hands = a.hands
     if not hands then
         return
@@ -36,19 +47,19 @@ M.draw = function (back, a)
     
     for _, hand in pairs(hands) do
         -- hand.r = hand.r + math.rad(1)
-        if back == hand.back then
+        local pop_hand = transform(0, hand.dist, hand.arm_r, 1, 1, 0, 0)
+        if layer == floor(hand.layer) then
             -- draw hand
-            local pop_hand = transform(0, hand.dist, hand.r, 1, 1, 0, 0)
             render_sprite.draw_sprite(hand.sprite)
-            -- draw item
-            local item = hand.item
-            if item then
-                local pop_item = transform(0, 0, 0, 1, 1, 0, 0) -- item_img:getWidth()/2, item_img:getHeight()/2)
-                render_sprite.draw_sprite(item)
-                pop_item()
-            end
-            pop_hand()
         end
+        -- draw item
+        local item = hand.item
+        if item and layer == floor(hand.item_layer) then
+            local pop_item = transform(0, 0, (hand.sprite.r or rad(0)) + rad(90), 1, 1, 0, 0) -- item_img:getWidth()/2, item_img:getHeight()/2)
+            render_sprite.draw_sprite(item)
+            pop_item()
+        end
+        pop_hand()
     end
 end
 

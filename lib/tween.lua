@@ -253,7 +253,7 @@ local function copyTables(destination, keysTable, valuesTable)
   end
   for k,v in pairs(keysTable) do
     if type(v) == 'table' then
-      destination[k] = copyTables({}, v, valuesTable[k])
+      destination[k] = copyTables(destination[k] or {}, v, valuesTable[k])
     else
       destination[k] = valuesTable[k]
     end
