@@ -67,6 +67,7 @@ end
 local pow = math.pow
 
 -- Godot ease()
+-- https://byteatatime.dev/posts/easings/
 --
 -- NATURAL `[-2, -5]` _(jumping, ui)_ </br>
 -- DECEL `[0.2, 0.5]` _(landing, falling with resistance)_ </br>

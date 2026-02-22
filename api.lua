@@ -223,21 +223,60 @@ local drop_item = function (a, idx)
     end
 end
 
+---@class ItemModule
+---@field item fun():Item
+---@field hold_in_hand? boolean
+---@field sprite? fun():Sprite
+---@field equip? fun(a:Actor, item:Item)
+---@field activate? fun(a:Actor, item:Item)
+
+local load_item = function (name)
+    ---@type ItemModule
+    return require('items.'..name)
+end
+
+local equip_item = function (a, item)
+    if item.equipped then
+        return
+    end
+    log.info('equip', item.name)
+    local item_module = load_item(item.name)
+    item.equipped = true
+    -- equip event
+    if item_module.equip then
+        item_module.equip(a, item)
+    end
+    -- show in hand?
+    if item_module.hold_in_hand and a.hands.right then
+        a.hands.right.item = item_module.sprite()
+    end
+end
+
+---@param a Actor
+---@param item Item
+local add_to_inventory = function (a, item)
+    -- drop last item in inventory if above capacity
+    while #a.inventory.items >= a.inventory.capacity do
+        drop_item(a, #a.inventory.items)
+    end
+    if #a.inventory.items < a.inventory.capacity then
+        -- add item to inventory
+        lume.push(a.inventory.items, item)
+        log.debug("add", item.name..', inventory:' , #a.inventory.items, 'items')
+        -- call 'equip'
+        if #a.inventory.items == 1 then
+            equip_item(a, item)
+        end
+        return true
+    end
+end
+
 ---@param a Actor
 ---@param item Actor
 local pick_up_item = function(a, item)
-    if use_cd(key('pick_up_item', a.id), 2) then
-        -- drop last item in inventory if above capacity
-        while #a.inventory.items >= a.inventory.capacity do
-            drop_item(a, #a.inventory.items)
-        end
-        if #a.inventory.items < a.inventory.capacity then
-            -- add item to inventory
-            lume.push(a.inventory.items, item.item)
-            log.debug("picked up", item.item.name..', inventory:' , #a.inventory.items, 'items')
-            remove_actor(item)
-            return true
-        end
+    if use_cd(key('pick_up_item', a.id), 2) and add_to_inventory(a, item.item) then
+        remove_actor(item)
+        return true
     end
     return false
 end
@@ -670,36 +709,9 @@ local update = function (dt)
             -- use item
             if a.inventory and #a.inventory.items > 0 then
                 local item = a.inventory.items[1]
-                if  input:down 'primary' and
-                    item.name == 'sword' and
-                    a.aim_dir and
-                    use_cd(key('use_item', a.id, item.name), item.cooldown or 1)
-                then
-                    -- swing sword
-                    local sword_hitbox
-                    tick.delay(function ()
-                        -- create sword dmg+hitbox
-                        -- log.debug("aim dir", a.aim_dir)
-                        sword_hitbox = add_actor{
-                            owner = a.id,
-                            pos = a.pos + (a.aim_dir * a.range),
-                            off = vec2(-16, -16),
-                            vel = a.vel,
-                            dmg = 5,
-                            shape = {
-                                tag = 'hit',
-                                pos=vec2(-16, -16), 
-                                size=vec2(32, 32),
-                                knockback = 300,
-                                cd = 5,
-                            },
-                            alt = a.alt,
-                        }
-                    end, 0.1)
-                    :after(function ()
-                        -- remove hitbox at 0.6 sec
-                        remove_actor(sword_hitbox)
-                    end, 0.1)
+                local item_module = load_item(item.name)
+                if item_module and input:down 'primary' and use_cd(key('use_item', a.id, item.name), item.cooldown or 1) then
+                    item_module.activate(a, item)
                 end
             end
         end
@@ -961,5 +973,7 @@ return {
         add = add_actor,
         remove = remove_actor,
         draw = draw_actor,
+        add_to_inventory = add_to_inventory,
+        pick_up_item = pick_up_item,
     }
 }

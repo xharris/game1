@@ -22,7 +22,7 @@ M.player = function (player)
         mass = 10,
         hp = M.HP,
         alt = 0,
-        inventory = {capacity=1, items={M.sword().item}},
+        inventory = {capacity=1, items={}},
         shape = {
             tag = 'body',
             pos = vec2(-16, 0),
@@ -45,6 +45,7 @@ M.player = function (player)
         hands = {
             left = {
                 dist = 8,
+                animated_arm_r = 0,
                 arm_r = math.rad(45),
                 state = render_hands.STATE.neutral,
                 layer = render_hands.LAYER.back_1,
@@ -60,7 +61,8 @@ M.player = function (player)
             },
             right = {
                 dist = 8,
-                arm_r = -math.rad(45),
+                animated_arm_r = -math.rad(45),
+                arm_r = 0, -- controlled by aim_dir
                 state = render_hands.STATE.neutral,
                 layer = render_hands.LAYER.front_2,
                 item_layer = render_hands.LAYER.front_1,
@@ -132,13 +134,14 @@ M.sword = function ()
     return M.item(
         {
             name='sword',
-            cooldown = 0.2,
+            cooldown = 1,
         },
         {
             path = assets.sword,
             frame = 1,
             frames = vec2(1, 1),
-            off = vec2(16, 25),
+            off = vec2(17, 26),
+            scale = vec2(0.75, 0.75),
         }
     )
 end

@@ -2,6 +2,10 @@ local api = require 'api'
 local baton = require 'lib.baton'
 local actors = require 'actors'
 
+local rad = math.rad
+
+local sword = require 'items.sword'
+
 local idx = 1
 local current_animation = require 'animations.swing_item'
 
@@ -22,17 +26,17 @@ local zoom = 2
 return {
     load = function ()
         player = api.actor.add(actors.player(1))
-        player.hands.right.item = actors.sword().sprite
+        api.actor.add_to_inventory(player, sword.item())
         player.alt = nil
     end,
 
     update = function (dt)
-        if input:pressed 'go' then
-            log.debug('go')
-            -- replay animation
-            current_animation.animate(player.id, player.hands.right, idx)
-            idx = idx + 1
-            idx = (idx - 1) % #current_animation.steps + 1
+        if player.aim_dir then
+            if player.aim_dir.x < 0 then
+                player.hands.right.arm_r = player.aim_dir:heading() + rad(180)
+            else
+                player.hands.right.arm_r = -player.aim_dir:heading()
+            end
         end
 
         if input:down 'move_in' then

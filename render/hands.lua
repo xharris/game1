@@ -2,6 +2,7 @@ local M = {}
 
 ---@class Hand
 ---@field dist number
+---@field animated_arm_r number
 ---@field arm_r number 0 is straight down, -left  +right
 ---@field layer hand_layer
 ---@field sprite? Sprite
@@ -21,6 +22,7 @@ local render_sprite = require 'render.sprite'
 local transform = math2.transform
 local rad = math.rad
 local floor = math.floor
+local round = math2.round
 
 ---@enum hand_state
 M.STATE = {
@@ -47,14 +49,14 @@ M.draw = function (layer, a)
     
     for _, hand in pairs(hands) do
         -- hand.r = hand.r + math.rad(1)
-        local pop_hand = transform(0, hand.dist, hand.arm_r, 1, 1, 0, 0)
-        if layer == floor(hand.layer) then
+        local pop_hand = transform(0, hand.dist, hand.arm_r + hand.animated_arm_r, 1, 1, 0, 0)
+        if layer == round(hand.layer) then
             -- draw hand
             render_sprite.draw_sprite(hand.sprite)
         end
         -- draw item
         local item = hand.item
-        if item and layer == floor(hand.item_layer) then
+        if item and layer == round(hand.item_layer) then
             local pop_item = transform(0, 0, (hand.sprite.r or rad(0)) + rad(90), 1, 1, 0, 0) -- item_img:getWidth()/2, item_img:getHeight()/2)
             render_sprite.draw_sprite(item)
             pop_item()

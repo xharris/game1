@@ -18,6 +18,7 @@
 ---@class Item
 ---@field name string
 ---@field cooldown? number
+---@field equipped? boolean
 
 ---@alias ShapeTag 'wall'|'body'|'hit'|'area'|'ground'
 

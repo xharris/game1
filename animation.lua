@@ -1,14 +1,14 @@
 local M = {}
 
 local tween = require 'lib.tween'
+local math2 = require 'lib.math2'
 
 local ripairs = lume.ripairs
 local lerp = lume.lerp
+local math2_ease = math2.ease
 
 ---@class AnimationStep
----@field step? number default `1`. # of visible poses
----@field snap? number default `0`. sharpness
----@field bias? number default `1`. >1 ease out, <1 ease in
+---@field ease? number
 ---@field duration number
 ---@field target table<string, any>
 
@@ -64,6 +64,13 @@ local steppedEase = lume.memoize(function(steps, snap, bias)
     end
 end)
 
+
+local ease = function (ease_c)
+    return function(t, b, c, d)
+        return b + c * math2_ease(t / d, ease_c)
+    end
+end
+
 ---@type Tween[]
 local tweens = {}
 
@@ -74,7 +81,8 @@ local do_first_step = function (twn)
         twn.tween = tween.new(
             step.duration == 0 and 0.0001 or step.duration,
             twn.subject,
-            step.target
+            step.target,
+            ease(step.ease or 1)
              -- steppedEase(step.step, step.snap, step.bias)
         )
         return true
@@ -84,7 +92,7 @@ end
 
 ---@param name string unique name (per actor, per animation)
 ---@param subject table<string, Actor>
----@param steps any
+---@param steps AnimationStep[]
 M.animate = function (name, subject, steps)
     for _, twn in ipairs(tweens) do
         if twn.name == name then
