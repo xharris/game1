@@ -29,6 +29,7 @@
 ---@field disabled? boolean
 ---@field knockback? number [tag=hit] collision knockback strength
 ---@field cd? number cooldown
+---@field debug? boolean
 
 ---@class Ai
 ---@field vision_radius number

@@ -658,8 +658,6 @@ end
 
 
 local update = function (dt)
-    tick.update(dt)
-
     local need_sort = false
     for _, a in ipairs(game.actors) do
         local z = get_z(a)
@@ -984,7 +982,19 @@ return {
     },
     actor = {
         add = add_actor,
+        ---@param actors Actor[]
+        add_many = function (actors)
+            for _, a in ipairs(actors) do
+                add_actor(a)
+            end
+        end,
         remove = remove_actor,
+        ---@param actors Actor[]
+        remove_many = function (actors)
+            for _, a in ipairs(actors) do
+                remove_actor(a)
+            end
+        end,
         draw = draw_actor,
         add_to_inventory = add_to_inventory,
         pick_up_item = pick_up_item,

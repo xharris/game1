@@ -3,9 +3,10 @@ local M = {}
 
 local assets = require 'assets'
 local animation = require 'animation'
-local swing_item = require 'animations.swing_item'
 local api = require 'api'
 local tick = require 'lib.tick'
+local hitbox = require 'hitbox'
+local a = require 'animations'
 
 local clone = lume.clone
 
@@ -28,39 +29,47 @@ M.sprite = function ()
     }
 end
 
-M.activate = function (a, item)
-    -- play swing animation_test
-    if a.hands and a.hands.right then
-        -- next swing animation
-        local idx = (item._animation_idx or 0) + 1
-        idx = (idx - 1) % #swing_item.steps + 1
-        item._animation_idx = idx
+local swing_animations = {
+    {a.hand_swing_down(0), a.hand_swing_up(1)},
+    {a.hand_swing_up(0), a.hand_swing_down(1)},
+}
 
-        swing_item.animate(a.id, a.hands.right, idx)
+M.activate = function (a, item)
+    -- play swing animation
+    if a.hands and a.hands.right then
+        -- determine next swing animation
+        local idx = (item._animation_idx or 0) + 1
+        idx = (idx - 1) % #swing_animations + 1
+        item._animation_idx = idx
+        -- play animation
+        animation.animate(api.key(a.id, 'sword activate'), a.hands.right, swing_animations[idx])
     end
+
     -- create hitbox(es) halfway through animation
-    local sword_hitbox
+    local hitboxes = {}
     tick.delay(function ()
-        -- create sword dmg+hitbox
-        sword_hitbox = api.actor.add{
-            owner = a.id,
-            pos = a.pos + (a.aim_dir * a.range),
+        hitboxes = hitbox.create{
+            pos = a.pos + (a.aim_dir * 20),
             vel = a.vel,
-            dmg = 5,
-            shape = {
-                tag = 'hit',
-                pos=vec2(-16, -16),
-                size=vec2(32, 32),
-                knockback = 300,
-                cd = 5,
+            size = vec2(32, 32),
+            line = {
+                to = a.pos + (a.aim_dir * 60),
+                segments = 3,
             },
-            alt = a.alt,
         }
-    end, 0.1)
+        -- configure shapes
+        for _, h in ipairs(hitboxes) do
+            h.owner = a.id
+            h.dmg = 5
+            h.shape.knockback = 300
+            h.shape.cd = 5
+            h.shape.debug = true
+        end
+        api.actor.add_many(hitboxes)
+    end, 0.4)
     :after(function ()
-        -- remove hitbox at 0.6 sec
-        api.actor.remove(sword_hitbox)
-    end, 0.1)
+        api.actor.remove_many(hitboxes)
+    end, 0.5)
 end
 
 return M

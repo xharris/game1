@@ -12,6 +12,7 @@ log.serialize = lume.serialize
 
 local input = require 'input'
 local animation = require 'animation'
+local tick = require 'lib.tick'
 shove = require 'lib.shove'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
@@ -40,6 +41,7 @@ function love.update(dt)
     if state and state.update then
         state.update(dt)
     end
+    tick.update(dt)
     animation.update(dt)
     local is_mac = love.system.getOS() == 'OS X'
     if input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then

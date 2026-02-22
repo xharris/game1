@@ -1,10 +1,8 @@
 local M = {}
 
-local api = require 'api'
 local render_hands = require 'render.hands'
-local animation = require 'animation'
 
-M.idle = function ()
+M.hand_idle = function ()
     ---@type AnimationStep
     return {
         duration = 0,
@@ -22,7 +20,7 @@ end
 
 ---@param duration number
 ---@return AnimationStep
-M.swing_up = function (duration)
+M.hand_swing_up = function (duration)
     return {
         duration = duration,
         ease = -5,
@@ -40,7 +38,7 @@ end
 
 ---@param duration number
 ---@return AnimationStep
-M.swing_down = function (duration)
+M.hand_swing_down = function (duration)
     return {
         duration = duration,
         ease = -5,
@@ -54,25 +52,6 @@ M.swing_down = function (duration)
             item_layer = render_hands.LAYER.front_1,
         },
     }
-end
-
----@type AnimationStep[][]
-M.steps = {
-    -- up
-    {M.swing_down(0), M.swing_up(1)},
-    -- down
-    {M.swing_up(0), M.swing_down(1)},
-}
-
----@param id string
----@param hand Hand
----@param idx number
-M.animate = function(id, hand, idx)
-    return animation.animate(
-        api.key(id, 'swing sword'),
-        hand,
-        M.steps[idx]
-    )
 end
 
 return M

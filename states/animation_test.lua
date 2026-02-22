@@ -26,6 +26,10 @@ return {
     end,
 
     update = function (dt)
+        if input:pressed 'go' then
+            log.info('reload modules')
+            lume.hotswap('items.sword')
+        end
         if input:down 'move_in' then
             zoom = zoom + dt * 5
         end
