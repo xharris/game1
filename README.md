@@ -99,7 +99,8 @@
   - arms
 - [ ] alt circle shadows
 - [ ] sword
-  - swing animation
+  - [x] swing animation
+  - [ ] hitbox
 
 - enemies
 - traps

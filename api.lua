@@ -8,6 +8,7 @@ local luastar = require 'lib.lua-star'
 local tick = require 'lib.tick'
 local actors = require 'actors'
 local light = require 'light'
+local hitbox = require 'hitbox'
 
 local render_level_tile = require 'render.level_tile'
 local render_sprite = require 'render.sprite'
@@ -31,6 +32,8 @@ local clamp = lume.clamp
 local abs = math.abs
 local circle = love.graphics.circle
 local sign = lume.sign
+local rad = math.rad
+local transform = math2.transform
 
 local world = bump.newWorld()
 
@@ -626,6 +629,7 @@ local renderers = {
     render_sprite.draw,
     lume.fn(render_hands.draw, render_hands.LAYER.front_1),
     lume.fn(render_hands.draw, render_hands.LAYER.front_2),
+    hitbox.draw,
 }
 
 ---@param a Actor
@@ -689,6 +693,14 @@ local update = function (dt)
         -- face direction
         if a.aim_dir and a.scale then
             a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
+        end
+        -- move arm in aim direction
+        if a.aim_dir and a.hands then
+            if a.aim_dir.x < 0 then
+                a.hands.right.arm_r = a.aim_dir:heading() + rad(180)
+            else
+                a.hands.right.arm_r = -a.aim_dir:heading()
+            end
         end
         if a.player then
             if a.move_dir and a.move_dir:getmag() > 0 then
@@ -959,6 +971,7 @@ local draw = function ()
 end
 
 return {
+    math2 = math2,
     camera = camera,
     update = update,
     draw = draw,

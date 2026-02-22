@@ -1,7 +1,7 @@
 local M = {}
 
 ---@class Sprite
----@field path string
+---@field path? string
 ---@field frames Vector.lua
 ---@field frame number
 ---@field pos? Vector.lua will be relative to actor
@@ -12,14 +12,13 @@ local M = {}
 
 ---@class Actor
 ---@field sprite? Sprite
+---@field sprite_rect? {w:number, h:number, fill:boolean, color:string}
 
 local assets = require 'assets'
 local math2 = require 'lib.math2'
 local mui = require 'lib.mui'
 
 local draw = love.graphics.draw
-local sign = lume.sign
-local abs = math.abs
 local transform = math2.transform
 local set_color = love.graphics.setColor
 local rectangle = love.graphics.rectangle
@@ -48,23 +47,25 @@ end
 
 ---@param sprite Sprite
 M.draw_sprite = function (sprite)
-    local img, quad = M.get_objects(sprite.path, sprite.frames.x, sprite.frames.y)
     local pop = M.transform(sprite)
-    draw(img, quad)
-    if sprite.debug then
-        set_color(lume.color(mui.RED_400))
-        local _, _, w, h = quad:getViewport()
-        rectangle("line", 0, 0, w, h)
+    -- draw image
+    if sprite.path then
+        local img, quad = M.get_objects(sprite.path, sprite.frames.x, sprite.frames.y)
+        draw(img, quad)
+        if sprite.debug then
+            set_color(lume.color(mui.RED_400))
+            local _, _, w, h = quad:getViewport()
+            rectangle("line", 0, 0, w, h)
+        end
     end
     pop()
 end
 
 ---@param a Actor
 M.draw = function (a)
-    if not a.sprite then
-        return
+    if a.sprite then
+        M.draw_sprite(a.sprite)
     end
-    M.draw_sprite(a.sprite)
 end
 
 return M

@@ -2,12 +2,7 @@ local api = require 'api'
 local baton = require 'lib.baton'
 local actors = require 'actors'
 
-local rad = math.rad
-
 local sword = require 'items.sword'
-
-local idx = 1
-local current_animation = require 'animations.swing_item'
 
 local input = baton.new{
     controls = {
@@ -31,14 +26,6 @@ return {
     end,
 
     update = function (dt)
-        if player.aim_dir then
-            if player.aim_dir.x < 0 then
-                player.hands.right.arm_r = player.aim_dir:heading() + rad(180)
-            else
-                player.hands.right.arm_r = -player.aim_dir:heading()
-            end
-        end
-
         if input:down 'move_in' then
             zoom = zoom + dt * 5
         end
