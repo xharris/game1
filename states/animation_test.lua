@@ -13,9 +13,7 @@ local swing_sword = {
     -- up
     {
         {
-            step = 3,
-            snap = 0.05,
-            duration = 0.1,
+            step = 3, snap = 0.05, bias = 2.5, duration = 0.1,
             target = {
                 r = -math.rad(45+90),
             },
@@ -24,9 +22,7 @@ local swing_sword = {
     -- down
     {
         {
-            step = 3,
-            snap = 0.05,
-            duration = 0.2,
+            step = 3, snap = 0.05, bias = 2.5, duration = 0.1,
             target = {
                 r = -math.rad(45),
             },
@@ -36,18 +32,20 @@ local swing_sword = {
 
 local input = baton.new{
     controls = {
-        go = {'key:space'}
+        go = {'key:space'},
+        move_in = {'key:='},
+        move_out = {'key:-'}
     }
 }
 
 ---@type Actor
 local player
 
+local zoom = 1
+
 ---@type State
 return {
     load = function ()
-        api.camera.set_scale(3, 3)
-
         api.renderers = {
             render_level_tile.draw,
             lume.fn(render_hands.draw, true),
@@ -56,16 +54,14 @@ return {
         }
 
         player = api.actor.add(actors.player(1))
+        player.hands.right.item = actors.sword().sprite
         player.alt = nil
     end,
 
     update = function (dt)
-        input:update()
-        animation.update(dt)
-
         if input:pressed 'go' then
+            log.debug('go')
             -- replay animation
-            log.info('play animation', idx)
             animation.animate(
                 api.key(player.id, 'swing sword'),
                 player.hands.right,
@@ -75,6 +71,16 @@ return {
             idx = (idx - 1) % #swing_sword + 1
         end
 
+        if input:down 'move_in' then
+            zoom = zoom + dt * 5
+        end
+        if input:down 'move_out' then
+            zoom = zoom - dt * 5
+        end
+
+        api.camera.set_scale(zoom)
+        input:update()
+        animation.update(dt)
         api.update(dt)
     end,
 

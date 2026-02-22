@@ -8,6 +8,7 @@ local lerp = lume.lerp
 ---@class AnimationStep
 ---@field step? number default `1`. # of visible poses
 ---@field snap? number default `0`. sharpness
+---@field bias? number default `1`. >1 ease out, <1 ease in
 ---@field duration number
 ---@field target table<string, any>
 
@@ -21,40 +22,41 @@ local lerp = lume.lerp
 --- (3, 0): hard cuts, (2, 0): stylized
 ---@param steps number # of visible poses
 ---@param snap number sharpness (0 = instant hard cut, 1 = small interp window)
-local steppedEase = lume.memoize(function(steps, snap)
+---@param bias? number >1 ease out, <1 ease in
+local steppedEase = lume.memoize(function(steps, snap, bias)
     steps = math.max(1, steps or 1)
     snap = math.max(0, math.min(snap or 0, 1))
+    bias = bias or 1  -- 1 = linear spacing
 
     return function(t, b, c, d)
-        if d == 0 then
-            return b + c
-        end
+        if d == 0 then return b + c end
 
-        -- Normalize time to 0–1
         local u = t / d
-        if u >= 1 then
-            return b + c
-        end
+        if u >= 1 then return b + c end
 
         local stepSize = 1 / steps
         local stepIndex = math.floor(u / stepSize)
-        local stepStart = stepIndex * stepSize
-        local stepEnd = stepStart + stepSize
+        local stepStartTime = stepIndex * stepSize
+        local stepEndTime = stepStartTime + stepSize
 
-        -- Where snapping begins inside this step
-        local snapStart = stepEnd - (stepSize * snap)
+        -- Apply bias to spatial distribution
+        local function biasCurve(x)
+            return 1 - (1 - x)^bias
+        end
+
+        local stepStart = biasCurve(stepStartTime)
+        local stepEnd = biasCurve(stepEndTime)
+
+        local snapStart = stepEndTime - (stepSize * snap)
 
         local progress
 
         if u < snapStart then
-            -- Hold pose
             progress = stepStart
         elseif snap > 0 then
-            -- Micro interpolation window
             local interp = (u - snapStart) / (stepSize * snap)
-            progress = stepStart + interp * stepSize
+            progress = stepStart + interp * (stepEnd - stepStart)
         else
-            -- Hard snap
             progress = stepEnd
         end
 
@@ -73,7 +75,7 @@ local do_first_step = function (twn)
             step.duration == 0 and 0.0001 or step.duration,
             twn.subject,
             step.target,
-            steppedEase(step.step, step.snap)
+            steppedEase(step.step, step.snap, step.bias)
         )
         return true
     end
@@ -92,7 +94,7 @@ M.animate = function (name, subject, steps)
     ---@type Tween
     local twn = {
         name = name,
-        steps = steps,
+        steps = {table.unpack(steps)},
         subject = subject,
     }
     lume.push(tweens, twn)

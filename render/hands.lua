@@ -4,26 +4,20 @@ local M = {}
 ---@field dist number
 ---@field r number 0 is straight down, -left  +right
 ---@field back boolean
----@field path? string
+---@field sprite? Sprite
 ---@field state? hand_state
----@field item? string
+---@field item? Sprite
 
 ---@alias Hands table<string, Hand>
 
 ---@class Actor
 ---@field hands? Hands
 
-local assets = require 'assets'
 local math2 = require 'lib.math2'
 
-local draw = love.graphics.draw
-local push = lume.fn(love.graphics.push, 'all')
-local pop = love.graphics.pop
-local translate = love.graphics.translate
-local rotate = love.graphics.rotate
-local round = math2.round
-local scale = love.graphics.scale
-local origin = love.graphics.origin
+local render_sprite = require 'render.sprite'
+
+local transform = math2.transform
 
 ---@enum hand_state
 M.STATE = {
@@ -31,21 +25,6 @@ M.STATE = {
     palm = 2,
     point = 3,
 }
-
-local state_count = #lume.keys(M.STATE)
-
----@type table<string, love.Image>
-local images = {}
-
----@param back boolean
----@param path string
----@param state hand_state
-local get_objects = lume.memoize(function (back, path, state)
-    local img = love.graphics.newImage(path)
-    local state_count = #lume.keys(M.STATE)
-    local quad = love.graphics.newQuad((state-1) * (img:getWidth()/state_count), 0, img:getWidth()/state_count, img:getHeight(), img)
-    return img, quad
-end)
 
 ---@param back boolean
 ---@param a Actor
@@ -58,20 +37,17 @@ M.draw = function (back, a)
     for _, hand in pairs(hands) do
         -- hand.r = hand.r + math.rad(1)
         if back == hand.back then
-            -- get sprite
-            local img, quad = get_objects(back, hand.path or assets.hand, hand.state)
-            
-            push()
-            -- transform
-            if a.off then
-                translate(a.off.x, a.off.y)
+            -- draw hand
+            local pop_hand = transform(0, hand.dist, hand.r, 1, 1, 0, 0)
+            render_sprite.draw_sprite(hand.sprite)
+            -- draw item
+            local item = hand.item
+            if item then
+                local pop_item = transform(0, 0, 0, 1, 1, 0, 0) -- item_img:getWidth()/2, item_img:getHeight()/2)
+                render_sprite.draw_sprite(item)
+                pop_item()
             end
-            scale(0.8)
-            rotate(hand.r - math.rad(90))
-            translate(-img:getWidth()/state_count, -img:getHeight())
-            translate(0, hand.dist)
-            draw(img, quad)
-            pop()
+            pop_hand()
         end
     end
 end

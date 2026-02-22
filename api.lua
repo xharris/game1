@@ -30,7 +30,7 @@ local pop = love.graphics.pop
 local clamp = lume.clamp
 local abs = math.abs
 local circle = love.graphics.circle
-local line = love.graphics.line
+local sign = lume.sign
 
 local world = bump.newWorld()
 
@@ -644,6 +644,10 @@ local update = function (dt)
             a.move_dir:set(movex, movey)
             -- apply move_dir
             a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
+        end
+        -- face direction
+        if a.aim_dir and a.scale then
+            a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
         end
         if a.player then
             if a.move_dir and a.move_dir:getmag() > 0 then

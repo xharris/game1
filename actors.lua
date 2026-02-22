@@ -15,7 +15,6 @@ M.player = function (player)
         z = 10,
         player = player,
         pos = vec2(),
-        off = vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
         max_move_speed = 100,
@@ -39,6 +38,7 @@ M.player = function (player)
             path = assets.player,
             frames = vec2(7, 1),
             frame = 1,
+            off = vec2(16, 16),
         },
         scale = vec2(2, 2),
         hands = {
@@ -47,12 +47,26 @@ M.player = function (player)
                 r = math.rad(45),
                 state = 1,
                 back = false,
+                sprite = {
+                    frame = 1,
+                    frames = vec2(3, 1),
+                    path = assets.hand,
+                    off = vec2(8, 8),
+                    scale = vec2(0.8, 0.8),
+                },
             },
             right = {
                 dist = 8,
                 r = -math.rad(45),
                 state = 1,
                 back = true,
+                sprite = {
+                    frame = 1,
+                    frames = vec2(3, 1),
+                    path = assets.hand,
+                    off = vec2(8, 8),
+                    scale = vec2(0.8, 0.8),
+                },
             },
         }
     }
@@ -91,7 +105,8 @@ M.slime = function ()
 end
 
 ---@param item Item
-M.item = function (item)
+---@param sprite Sprite
+M.item = function (item, sprite)
     ---@type Actor
     return {
         z = 10,
@@ -104,14 +119,22 @@ M.item = function (item)
             pos = vec2(-16, -16),
             size = vec2(32, 32),
         },
+        sprite = sprite
     }
 end
 
 M.sword = function ()
-    return M.item{
-        name='sword',
-        cooldown = 0.2
-    }
+    return M.item(
+        {
+            name='sword',
+            cooldown = 0.2,
+        },
+        {
+            path = assets.sword,
+            frame = 1,
+            frames = vec2(1, 1),
+        }
+    )
 end
 
 return M 

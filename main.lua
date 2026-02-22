@@ -1,3 +1,4 @@
+table.unpack = table.unpack or unpack
 io.stdout:setvbuf("no")
 math.random = love.math.random
 vec2 = require 'lib.vector'

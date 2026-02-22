@@ -118,4 +118,26 @@ M.eq = function (a, b, epsilon)
     return abs(a - b) < 0.01
 end
 
+local scale = love.graphics.scale
+local rotate = love.graphics.rotate
+local translate = love.graphics.translate
+local push = lume.fn(love.graphics.push, 'all')
+local pop = love.graphics.pop
+
+---@param x number
+---@param y number
+---@param r number
+---@param sx number
+---@param sy number
+---@param ox number
+---@param oy number
+M.transform = function (x, y, r, sx, sy, ox, oy)
+    push()
+    scale(sx, sy)
+    rotate(r)
+    translate(-ox, -oy)
+    translate(x, y)
+    return pop
+end
+
 return M
