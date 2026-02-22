@@ -98,9 +98,9 @@
   - spritesheets
   - arms
 - [ ] alt circle shadows
-- [ ] sword
+- [x] sword
   - [x] swing animation
-  - [ ] hitbox
+  - [x] hitbox
 
 - enemies
 - traps

@@ -10,10 +10,11 @@ log = require 'lib.log'
 lume = require 'lib.lume'
 log.serialize = lume.serialize
 
+shove = require 'lib.shove'
 local input = require 'input'
 local animation = require 'animation'
 local tick = require 'lib.tick'
-shove = require 'lib.shove'
+local api = require 'api'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
 -- push.setupScreen(800, 600, {upscale="normal"})
@@ -41,6 +42,7 @@ function love.update(dt)
     if state and state.update then
         state.update(dt)
     end
+    api.update(dt)
     tick.update(dt)
     animation.update(dt)
     local is_mac = love.system.getOS() == 'OS X'

@@ -38,8 +38,6 @@ return {
         end
 
         api.camera.set_scale(zoom)
-        input:update()
-        api.update(dt)
     end,
 
     draw = function ()

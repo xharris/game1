@@ -212,6 +212,19 @@ local remove_actor = function (a)
     end
 end
 
+
+---@class ItemModule
+---@field item fun():Item
+---@field hold_in_hand? boolean
+---@field sprite? fun():Sprite
+---@field equip? fun(a:Actor, item:Item)
+---@field activate? fun(a:Actor, item:Item, hand?:Hand)
+
+local load_item = function (name)
+    ---@type ItemModule
+    return require('items.'..name)
+end
+
 ---@param a Actor
 ---@param idx number
 local drop_item = function (a, idx)
@@ -219,23 +232,12 @@ local drop_item = function (a, idx)
     if dropped then
         log.debug("drop item:", dropped)
         table.remove(a.inventory.items, idx)
-        local item = actors.item(dropped)
+        local item_module = load_item(dropped.name)
+        local item = actors.item(dropped, item_module.sprite())
         item.pos = a.pos:clone()
         item.alt = a.alt
         add_actor(item)
     end
-end
-
----@class ItemModule
----@field item fun():Item
----@field hold_in_hand? boolean
----@field sprite? fun():Sprite
----@field equip? fun(a:Actor, item:Item)
----@field activate? fun(a:Actor, item:Item)
-
-local load_item = function (name)
-    ---@type ItemModule
-    return require('items.'..name)
 end
 
 local equip_item = function (a, item)
@@ -709,19 +711,15 @@ local update = function (dt)
 
             -- mouse aim direction
             local _, mx, my = shove.mouseToViewport()
-            if a.off then
-                mx = mx - a.off.x
-                my = my - a.off.y
-            end
-            mx, my = camera.to_world(mx, my)
-            a.aim_dir = vec2(mx, my):norm()
+            local wx, wy = camera.to_world(mx, my)
+            a.aim_dir = vec2(wx - a.pos.x, wy - (a.pos.y - (a.alt or 0))):norm()
 
             -- use item
             if a.inventory and #a.inventory.items > 0 then
                 local item = a.inventory.items[1]
                 local item_module = load_item(item.name)
                 if item_module and input:down 'primary' and use_cd(key('use_item', a.id, item.name), item.cooldown or 1) then
-                    item_module.activate(a, item)
+                    item_module.activate(a, item, a.hands and a.hands.right or nil)
                 end
             end
         end
@@ -979,6 +977,10 @@ return {
     },
     viewport = {
         size = shove.getViewportDimensions,
+    },
+    level = {
+        add = add_level,
+        enter = enter_level,
     },
     actor = {
         add = add_actor,

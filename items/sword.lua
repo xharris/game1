@@ -34,15 +34,15 @@ local swing_animations = {
     {a.hand_swing_up(0), a.hand_swing_down(1)},
 }
 
-M.activate = function (a, item)
+M.activate = function (a, item, hand)
     -- play swing animation
-    if a.hands and a.hands.right then
+    if hand then
         -- determine next swing animation
         local idx = (item._animation_idx or 0) + 1
         idx = (idx - 1) % #swing_animations + 1
         item._animation_idx = idx
         -- play animation
-        animation.animate(api.key(a.id, 'sword activate'), a.hands.right, swing_animations[idx])
+        animation.animate(api.key(a.id, 'sword activate'), hand, swing_animations[idx])
     end
 
     -- create hitbox(es) halfway through animation
