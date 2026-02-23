@@ -21,7 +21,6 @@ local render_sprite = require 'render.sprite'
 
 local transform = math2.transform
 local rad = math.rad
-local floor = math.floor
 local round = math2.round
 
 ---@enum hand_state
@@ -49,7 +48,7 @@ M.draw = function (layer, a)
     
     for _, hand in pairs(hands) do
         -- hand.r = hand.r + math.rad(1)
-        local pop_hand = transform(0, hand.dist, hand.arm_r + hand.animated_arm_r, 1, 1, 0, 0)
+        local pop_hand = transform(0, 0, hand.arm_r + hand.animated_arm_r, 1, 1, 0, -hand.dist)
         if layer == round(hand.layer) then
             -- draw hand
             render_sprite.draw_sprite(hand.sprite)

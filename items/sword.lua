@@ -8,8 +8,6 @@ local tick = require 'lib.tick'
 local hitbox = require 'hitbox'
 local a = require 'animations'
 
-local clone = lume.clone
-
 M.hold_in_hand = true
 
 M.item = function ()

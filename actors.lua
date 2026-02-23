@@ -8,6 +8,7 @@ local clone = lume.clone
 
 M.HP = 10
 
+
 ---@param player number
 M.player = function (player)
     ---@type Actor
@@ -45,8 +46,8 @@ M.player = function (player)
         hands = {
             left = {
                 dist = 8,
-                animated_arm_r = 0,
-                arm_r = math.rad(45),
+                animated_arm_r =math.rad(45),
+                arm_r = 0,
                 state = render_hands.STATE.neutral,
                 layer = render_hands.LAYER.back_1,
                 item_layer = render_hands.LAYER.back_2,

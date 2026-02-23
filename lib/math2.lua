@@ -134,10 +134,10 @@ local pop = love.graphics.pop
 ---@param oy number
 M.transform = function (x, y, r, sx, sy, ox, oy)
     push()
+    translate(x, y)
     scale(sx, sy)
     rotate(r)
     translate(-ox, -oy)
-    translate(x, y)
     return pop
 end
 

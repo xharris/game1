@@ -22,17 +22,14 @@ local remove = lume.remove
 local randomchoice = lume.randomchoice
 local eq = math2.eq
 local floor = math.floor
-local find = lume.find
 local TILE = game.TILE 
-local ripairs = lume.ripairs
-local round = math2.round
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
 local clamp = lume.clamp
 local abs = math.abs
-local circle = love.graphics.circle
 local sign = lume.sign
 local rad = math.rad
+local max = math.max
 local transform = math2.transform
 
 local world = bump.newWorld()
@@ -70,11 +67,12 @@ local tile_pos = function (idx)
 end
 
 ---@param idx number
----@param w number
----@param tile_size number
-local get_tile_bbox = function (idx, w, tile_size)
-    local x, y = math2.array1d_to_array2d(idx, w)
-    return x * tile_size, y * tile_size, tile_size, tile_size
+---@param level_idx number
+local get_tile_bbox = function (idx, level_idx)
+    local level = game.levels[level_idx]
+    local x, y = math2.array1d_to_array2d(idx, level.width)
+    local size = game.LEVEL_CELL_SIZE
+    return x * size.x, y * size.y, size.x, size.y
 end
 
 ---@param ... any
@@ -397,22 +395,26 @@ local enter_level = function (level_idx, a)
     end
     -- at starting level
     if level_idx == a.start_level then
+        local place = false
         if not a.start_tile then
             if a.enemy then
                 -- place enemy in random tile
                 a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+                place = true
             end
             if a.player then
                 -- place at random entrance
                 a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+                place = true
             end
             if a.item then
                 a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+                place = true
             end
         end
-        place_at_level_tile(tiles, a, a.start_tile)
-    else
-        place_at_level_tile(tiles, a, randomchoice(get_tiles_of_type(tiles, TILE.entrance)))
+        if place and a.start_tile then
+            place_at_level_tile(tiles, a, a.start_tile)
+        end
     end
     a.alt = level.alt
 end
@@ -436,20 +438,21 @@ local get_current_level = function(a)
     return nearest_level, level_idx
 end
 
+--- local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
 ---@param theme LevelTheme
-local add_level = function (theme)
+---@param tiles TILE[]
+---@param width number
+---@return number idx, Level level
+local add_level = function (theme, tiles, width)
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
     log.debug("add level", level_idx, "alt", alt)
-    -- read map data from img
-    local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
     local ox, oy = -floor(width/2), -floor(width/2)
     ---@type Level
     local level = {
         alt = alt,
         theme = theme,
         width = width,
-        walkable = {},
     }
     lume.push(game.levels, level)
     -- create LevelTiles
@@ -478,7 +481,13 @@ local add_level = function (theme)
     end
     -- set exit
     local tiles = get_level_tiles(level_idx)
-    local exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+    local exits = get_tiles_of_type(tiles, TILE.exit)
+    local exit
+    if #exits > 0 then
+        exit = randomchoice(exits)
+    else
+        exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+    end
     local exit_tile = tiles[exit]
     exit_tile.level_tile.type = 3
     add_actor{
@@ -489,26 +498,9 @@ local add_level = function (theme)
             pos = vec2(),
             size = vec2(32, 32),
         },
-        alt = alt
+        alt = alt,
     }
-    -- setup actors
-    local level_actors = {
-        actors.slime(),
-        actors.slime(),
-        actors.slime(),
-        actors.slime(),
-        actors.sword(),
-        actors.sword(),
-        actors.sword(),
-        actors.sword(),
-    }
-    for _, a in ipairs(level_actors) do
-        add_actor(a)
-        enter_level(level_idx, a)
-    end
-    -- TODO place traps
-    local canvas = get_level_tile_canvas
-    return level_idx
+    return level_idx, level
 end
 
 -- convert between world space and luastar grid space (0-based, always positive)
@@ -638,17 +630,11 @@ local renderers = {
 ---@param alt? number
 local draw_actor = function (a, alt)
     alt = alt or a.alt or 0
-    -- set transform
-    xform:reset()
-    xform:translate((a.pos.x), (a.pos.y - alt))
-    if a.scale then
-        xform:scale(a.scale.x, a.scale.y)
-    end
-    if a.off then
-        xform:translate(-(a.off.x), -(a.off.y)) -- offset
-    end
-    push()
-    love.graphics.applyTransform(xform)
+    local pop = transform(
+        a.pos.x, a.pos.y - alt,
+        0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
+        a.off and a.off.x or 0, a.off and a.off.y or 0
+    )
     setColor(1,1,1,1)
     for _, renderer in ipairs(renderers) do
         push()
@@ -680,7 +666,7 @@ local update = function (dt)
             camera.set_pos(pos.x, pos.y - (a.alt or 0))
             camera.position_smoothing = 0.1
         end
-        if a.move_dir then
+        if a.move_dir and not a.stunned then
             -- movement input
             local movex, movey = a.move_dir.x, a.move_dir.y
             if a.player then
@@ -694,8 +680,8 @@ local update = function (dt)
         if a.aim_dir and a.scale then
             a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
         end
-        -- move arm in aim direction
-        if a.aim_dir and a.hands then
+        -- move arm in aim direction if holding an item
+        if a.aim_dir and a.hands and a.hands.right.item then
             if a.aim_dir.x < 0 then
                 a.hands.right.arm_r = a.aim_dir:heading() + rad(180)
             else
@@ -742,6 +728,11 @@ local update = function (dt)
                 -- apply gravity
                 a.alt_v = (a.alt_v or 0) - gravity_step
                 a.alt = a.alt + a.alt_v * dt
+            end
+            -- there is a ground 0 floor
+            a.alt = max(0, a.alt)
+            if a.alt_0_walkable and a.alt <= 0 then
+                a.alt_v = 0
             end
         end
         if a.alt and a.alt < get_level_alt(-1) then
@@ -956,13 +947,6 @@ local draw = function ()
         end
         light.draw()
         camera.pop()
-
-        -- draw all level canvases (for this player)
-        -- for i, canvas in pairs(canvases) do
-        --     -- TODO change opacity based on `alt` difference
-            
-        --     love.graphics.draw(canvas)
-        -- end
     end
 end
 
@@ -981,6 +965,8 @@ return {
     level = {
         add = add_level,
         enter = enter_level,
+        to_grid = to_grid,
+        get_tile_bbox = get_tile_bbox,
     },
     actor = {
         add = add_actor,

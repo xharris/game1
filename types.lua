@@ -9,7 +9,6 @@
 ---@field alt number
 ---@field theme LevelTheme
 ---@field width number
----@field walkable Vector.lua[]
 
 ---@class LevelTile
 ---@field level number which level this belongs to
@@ -53,8 +52,10 @@
 ---@field vel? Vector.lua
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
+---@field stunned? boolean
 ---@field alt? number altitude/elevation
 ---@field alt_v? number alt velocity
+---@field alt_0_walkable? boolean remove? (unused)
 ---@field max_move_speed? number
 ---@field mass? number
 ---@field hp? number
