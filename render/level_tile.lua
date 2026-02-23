@@ -20,11 +20,11 @@ end)
 
 ---@param a Actor
 M.draw = function (a)
-    if not a.level_tile or a.level_tile.type == 0 or not a.size then
+    if not a.level_cell or a.level_cell.type == 0 or not a.size then
         return
     end
 
-    local level = game.levels[a.level_tile.level]
+    local level = game.levels[a.level_cell.level]
     local side_color, img, quad
     -- pick themed image
     if level.theme == 'forest' then

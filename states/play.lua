@@ -16,16 +16,22 @@ return {
         local player = api.actor.add(actors.player(1))
         player.stunned = true
         api.level.enter(level_idx, player)
+
+        -- player is sitting by tree
+        player.pos.x = player.pos.x - 16
+        player.sprite.frame = assets.player_frame.sit[1]
         
         -- add big tree
-        local x, y, w, h = api.level.get_tile_bbox(1, level_idx)
+        local start_cell = api.level.get_cell(level_idx, 1)
+        local cell_size = api.level.cell_size()
         local big_tree = api.actor.add{
-            pos = vec2(x + (w/2), y + (h/2)),
+            pos = start_cell.pos + (cell_size / 2),
             sprite = {
                 path = assets.large_tree,
                 frame = 1,
                 frames = vec2(1, 1),
-                off = vec2(32, 32),
+                off = vec2(32, 60),
+                scale = vec2(3, 3),
             },
         }
         api.level.enter(level_idx, big_tree)

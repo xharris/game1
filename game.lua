@@ -5,6 +5,7 @@ return {
     GAME_SCALE = 0.75,
 
     STATE = 'states.play',
+    -- STATE = 'states.animation_test',
 
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,

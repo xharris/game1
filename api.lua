@@ -66,13 +66,32 @@ local tile_pos = function (idx)
     return vec2(math2.array1d_to_array2d(idx, game.LEVEL_CELL_SIZE.x)) * game.LEVEL_TILE_SIZE
 end
 
----@param idx number
+
+local id = 0
+---@type table<Group, Actor[]>
+local actor_groups = {}
+
+---@type table<Faction, Actor[]>
+local actor_factions = {}
+
+---@param group Group
+local get_group = function (group)
+    return actor_groups[group] or {}
+end
+
+---@param faction Faction
+local get_faction = function (faction)
+    return actor_factions[faction] or {}
+end
+
 ---@param level_idx number
-local get_tile_bbox = function (idx, level_idx)
-    local level = game.levels[level_idx]
-    local x, y = math2.array1d_to_array2d(idx, level.width)
-    local size = game.LEVEL_CELL_SIZE
-    return x * size.x, y * size.y, size.x, size.y
+---@param cell_idx number
+local get_level_cell = function(level_idx, cell_idx)
+    for _, tile in ipairs(get_group('level_cell')) do
+        if tile.level_cell and tile.level_cell.level == level_idx and tile.level_cell.index == cell_idx then
+            return tile
+        end
+    end
 end
 
 ---@param ... any
@@ -101,7 +120,7 @@ end
 local get_tiles_of_type = function (tiles, tile)
     local idxs = {}
     for i, a in ipairs(tiles) do
-        if a.level_tile and a.level_tile.type == tile then
+        if a.level_cell and a.level_cell.type == tile then
             lume.push(idxs, i)
         end
     end
@@ -123,23 +142,6 @@ local use_cd = function (name, cd)
         return true
     end
     return false
-end
-
-local id = 0
----@type table<Group, Actor[]>
-local actor_groups = {}
-
----@type table<Faction, Actor[]>
-local actor_factions = {}
-
----@param group Group
-local get_group = function (group)
-    return actor_groups[group] or {}
-end
-
----@param faction Faction
-local get_faction = function (faction)
-    return actor_factions[faction] or {}
 end
 
 local actor_light = {}
@@ -291,12 +293,12 @@ local get_map_pos = function (pos, alt)
     for l, level in ipairs(game.levels) do
         if level.alt == alt then
             -- check tiles in this level
-            for t, tile in ipairs(get_group('level_tile')) do
+            for t, tile in ipairs(get_group('level_cell')) do
                 local size = vec2(
                     game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
                     game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
                 )
-                if tile.level_tile and
+                if tile.level_cell and
                     pos.x >= tile.pos.x and
                     pos.y >= tile.pos.y and
                     pos.x <= tile.pos.x + size.x and
@@ -370,9 +372,9 @@ end)
 
 ---@param level number
 local get_level_tiles = function (level)
-    local tiles = get_group('level_tile')
+    local tiles = get_group('level_cell')
     return lume.filter(tiles, function (t)
-        return t.level_tile.level == level
+        return t.level_cell.level == level
     end)
 end
 
@@ -462,11 +464,12 @@ local add_level = function (theme, tiles, width)
         local ix, iy = math2.array1d_to_array2d(i, width)
         -- add level tile
         local level_tile = add_actor{
-            group = 'level_tile',
+            group = 'level_cell',
             pos = vec2(ix+ox, iy+oy) * (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE),
-            level_tile = {
+            level_cell = {
                 level = level_idx,
-                type = tile
+                type = tile,
+                index = i,
             },
             size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             shape = tile ~= TILE.none and {
@@ -489,7 +492,7 @@ local add_level = function (theme, tiles, width)
         exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
     end
     local exit_tile = tiles[exit]
-    exit_tile.level_tile.type = 3
+    exit_tile.level_cell.type = 3
     add_actor{
         pos = exit_tile.pos + (game.LEVEL_CELL_SIZE / 2),
         level_exit = true,
@@ -540,8 +543,8 @@ local update_walkable = function (level_idx)
     local cells_x = tile_size.x / step.x  -- grid cells per tile
     local cells_y = tile_size.y / step.y
     local walkable = {}
-    for _, tile in ipairs(get_group('level_tile')) do
-        if tile.level_tile.level == level_idx and tile.level_tile.type ~= TILE.none then
+    for _, tile in ipairs(get_group('level_cell')) do
+        if tile.level_cell.level == level_idx and tile.level_cell.type ~= TILE.none then
             local g = to_grid(tile.pos, level_idx)
             for dy = 0, cells_y - 1 do
                 local row = g.y + dy
@@ -966,7 +969,13 @@ return {
         add = add_level,
         enter = enter_level,
         to_grid = to_grid,
-        get_tile_bbox = get_tile_bbox,
+        get_cell = get_level_cell,
+        cell_size = lume.memoize(function ()
+            return vec2(
+                game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
+                game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
+            )
+        end),
     },
     actor = {
         add = add_actor,

@@ -51,6 +51,11 @@ M.draw_sprite = function (sprite)
     -- draw image
     if sprite.path then
         local img, quad = M.get_objects(sprite.path, sprite.frames.x, sprite.frames.y)
+        local frame_w = img:getWidth()/sprite.frames.x
+        quad:setViewport(
+            frame_w * ((sprite.frame or 1) - 1), 0, 
+            frame_w, img:getHeight()/sprite.frames.y,
+            img:getWidth(), img:getHeight())
         draw(img, quad)
         if sprite.debug then
             set_color(lume.color(mui.RED_400))

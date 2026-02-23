@@ -10,9 +10,10 @@
 ---@field theme LevelTheme
 ---@field width number
 
----@class LevelTile
+---@class LevelCell
 ---@field level number which level this belongs to
 ---@field type TILE
+---@field index number
 
 ---@class Item
 ---@field name string
@@ -36,7 +37,7 @@
 ---@field last_seen? string actor id
 ---@field path? Vector.lua[]
 
----@alias Group 'level_tile'|'player'
+---@alias Group 'level_cell'|'player'
 
 ---@alias Faction 'human'|'wild_aggro'
 
@@ -69,7 +70,7 @@
 ---@field item? Item this is an item
 ---@field shape? Shape
 ---@field range? number aim / attacks / projectiles
----@field level_tile? LevelTile this is a level tile
+---@field level_cell? LevelCell this is a level tile
 ---@field size? Vector.lua
 ---@field level_exit? boolean this is a level exit
 ---@field current_level? number

@@ -2,6 +2,7 @@ local M = {}
 
 local tween = require 'lib.tween'
 local math2 = require 'lib.math2'
+local tick = require 'lib.tick'
 
 local ripairs = lume.ripairs
 local lerp = lume.lerp
@@ -10,13 +11,15 @@ local math2_ease = math2.ease
 ---@class AnimationStep
 ---@field ease? number
 ---@field duration number
+---@field delay? number
 ---@field target table<string, any>
+---@field wait? boolean
 
 ---@class Tween
 ---@field name string
 ---@field subject Actor
 ---@field steps AnimationStep[]
----@field tween? any
+---@field tweens any[]
 ---@field abort? boolean
 
 --- (3, 0): hard cuts, (2, 0): stylized
@@ -75,19 +78,32 @@ end
 local tweens = {}
 
 ---@param twn Tween
-local do_first_step = function (twn)
-    if #twn.steps > 0 then
+local do_next_step = function (twn)
+    local wait = false
+    local all_done = #twn.steps == 0
+    while #twn.steps > 0 and not wait do
         local step = twn.steps[1]
-        twn.tween = tween.new(
-            step.duration == 0 and 0.0001 or step.duration,
-            twn.subject,
-            step.target,
-            ease(step.ease or 1)
-             -- steppedEase(step.step, step.snap, step.bias)
-        )
-        return true
+        table.remove(twn.steps, 1)
+        if step.wait then
+            wait = true
+        end
+        local create_tween = function ()
+            local new_tween = tween.new(
+                step.duration == 0 and 0.0001 or step.duration,
+                twn.subject,
+                step.target,
+                ease(step.ease or 1)
+                -- steppedEase(step.step, step.snap, step.bias)
+            )
+            lume.push(twn.tweens, new_tween)
+        end
+        if (step.delay or 0) > 0 then
+            tick.delay(create_tween, step.delay)
+        else
+            create_tween()
+        end
     end
-    return false
+    return all_done
 end
 
 ---@param name string unique name (per actor, per animation)
@@ -104,8 +120,10 @@ M.animate = function (name, subject, steps)
         name = name,
         steps = {table.unpack(steps)},
         subject = subject,
+        tweens = {},
     }
     lume.push(tweens, twn)
+    do_next_step(twn)
 end
 
 M.update = function (dt)
@@ -117,25 +135,21 @@ M.update = function (dt)
             -- done animating
             table.remove(tweens, i)
         else
-            local remove = false
-
-            if not twn.tween then
-                -- start animation
-                remove = not do_first_step(twn)
-            end
-
-            if twn.tween then
-                -- animate
-                local done = twn.tween:update(dt)
-                if done then
-                    table.remove(twn.steps, 1)
-                    remove = not do_first_step(twn)
+            local all_done = true
+            for j, running_tween in ripairs(twn.tweens) do
+                -- update active tweens
+                if running_tween:update(dt) then
+                    table.remove(twn.tweens, j)
+                else
+                    all_done = false
                 end
             end
-
-            if remove then
-                -- done animating
-                table.remove(tweens, i)
+            if all_done then
+                local no_more = do_next_step(twn)
+                if no_more then
+                    -- done animating
+                    table.remove(tweens, i)
+                end
             end
         end
     end

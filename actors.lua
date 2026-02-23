@@ -38,8 +38,8 @@ M.player = function (player)
         breadcrumbs = {capacity=4, cd=0.2, points={}},
         sprite = {
             path = assets.player,
-            frames = vec2(7, 1),
-            frame = 1,
+            frames = assets.player_frames,
+            frame = assets.player_frame.idle[1],
             off = vec2(16, 16),
         },
         scale = vec2(2, 2),
