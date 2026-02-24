@@ -79,7 +79,8 @@
 
 ### Intro
 
-- player wakes up on ground leaning against tree
+- [x] player wakes up on ground sitting against tree
+- [ ] move to stand up
 - tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
 
 ### Enter maze

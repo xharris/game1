@@ -1,6 +1,9 @@
 local api = require 'api'
 local baton = require 'lib.baton'
 local actors = require 'actors'
+local a = require 'animations'
+local animation = require 'animation'
+local math2 = require 'lib.math2'
 
 local sword = require 'items.sword'
 
@@ -17,18 +20,30 @@ local player
 
 local zoom = 2
 
+local animation_idx = 1
+
 ---@type State
 return {
     load = function ()
         player = api.actor.add(actors.player(1))
-        api.actor.add_to_inventory(player, sword.item())
         player.alt = nil
     end,
 
     update = function (dt)
+        input:update()
         if input:pressed 'go' then
             log.info('reload modules')
             lume.hotswap('items.sword')
+            lume.hotswap('animations')
+            local animations = {
+                {a.stand(player)},
+                {a.sit(player)},
+            }
+            animation_idx = math2.wrap(animation_idx + 1, 1, #animations+1)
+            log.info('play animation', animation_idx)
+
+            animation.timeline(table.unpack(animations[animation_idx]))
+
         end
         if input:down 'move_in' then
             zoom = zoom + dt * 5

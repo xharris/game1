@@ -141,4 +141,12 @@ M.transform = function (x, y, r, sx, sy, ox, oy)
     return pop
 end
 
+---@param value number
+---@param min number
+---@param max number
+M.wrap = function(value, min, max)
+    local range = max - min
+    return ((value - min) % range) + min
+end
+
 return M

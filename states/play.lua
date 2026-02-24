@@ -1,6 +1,8 @@
 local actors = require 'actors'
 local api = require 'api'
 local assets = require 'assets'
+local animation = require 'animation'
+local a = require 'animations'
 
 ---@type State
 return {
@@ -19,7 +21,7 @@ return {
 
         -- player is sitting by tree
         player.pos.x = player.pos.x - 16
-        player.sprite.frame = assets.player_frame.sit[1]
+        animation.timeline(a.sit(player))
         
         -- add big tree
         local start_cell = api.level.get_cell(level_idx, 1)

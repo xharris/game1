@@ -6,9 +6,6 @@ local render_hands = require 'render.hands'
 
 local clone = lume.clone
 
-M.HP = 10
-
-
 ---@param player number
 M.player = function (player)
     ---@type Actor
@@ -21,7 +18,7 @@ M.player = function (player)
         move_dir = vec2(),
         max_move_speed = 100,
         mass = 10,
-        hp = M.HP,
+        hp = game.HP,
         alt = 0,
         inventory = {capacity=1, items={}},
         shape = {
@@ -45,11 +42,11 @@ M.player = function (player)
         scale = vec2(2, 2),
         hands = {
             left = {
-                dist = 8,
+                dist = game.PLAYER_ARM_DIST,
                 animated_arm_r =math.rad(45),
                 arm_r = 0,
                 state = render_hands.STATE.neutral,
-                layer = render_hands.LAYER.back_1,
+                layer = render_hands.LAYER.front_2,
                 item_layer = render_hands.LAYER.back_2,
                 sprite = {
                     frame = 1,
@@ -61,11 +58,11 @@ M.player = function (player)
                 },
             },
             right = {
-                dist = 8,
+                dist = game.PLAYER_ARM_DIST,
                 animated_arm_r = -math.rad(45),
                 arm_r = 0, -- controlled by aim_dir
                 state = render_hands.STATE.neutral,
-                layer = render_hands.LAYER.front_2,
+                layer = render_hands.LAYER.back_1,
                 item_layer = render_hands.LAYER.front_1,
                 sprite = {
                     frame = 1,
@@ -92,7 +89,7 @@ M.slime = function ()
         max_move_speed = 200,
         mass = 10,
         map_path = {},
-        hp = M.HP,
+        hp = game.HP,
         alt = 0,
         shape = {
             tag = 'body',

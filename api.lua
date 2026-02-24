@@ -774,7 +774,7 @@ local update = function (dt)
                                 other.pos.x + other.shape.pos.x,
                                 other.pos.y + other.shape.pos.y
                             )
-                            other.hp = actors.HP
+                            other.hp = game.HP
                         end
                         if other.enemy then
                             log.info("enemy died")

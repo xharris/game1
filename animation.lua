@@ -126,6 +126,24 @@ M.animate = function (name, subject, steps)
     do_next_step(twn)
 end
 
+---@class TimelineStep
+---@field name string
+---@field subject any
+---@field steps AnimationStep[]
+
+---@param ... (TimelineStep?)[]
+M.timeline = function (...)
+    for i = 1, select("#", ...) do
+        for _, step in ipairs(select(i, ...)) do
+            ---@cast step TimelineStep?
+            if step and step.subject then
+                log.debug('animate', step.name, step.subject)
+                M.animate(step.name, step.subject, step.steps)
+            end
+        end
+    end
+end
+
 M.update = function (dt)
     for i, twn in ripairs(tweens) do
         ---@cast i number

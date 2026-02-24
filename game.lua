@@ -28,6 +28,9 @@ return {
         entrance = 2,
         exit = 3,
     },
+
+    HP = 10,
+    PLAYER_ARM_DIST = 8,
     
     ---@type Level[]
     levels = {},
