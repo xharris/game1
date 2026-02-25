@@ -9,6 +9,7 @@ local tick = require 'lib.tick'
 local actors = require 'actors'
 local light = require 'light'
 local hitbox = require 'hitbox'
+local status_effects = require 'status_effects'
 
 local render_level_tile = require 'render.level_tile'
 local render_sprite = require 'render.sprite'
@@ -680,7 +681,7 @@ local update = function (dt)
             a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
         end
         -- face direction
-        if a.aim_dir and a.scale then
+        if a.aim_dir and a.aim_dir:getmag() > 0 and a.scale then
             a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
         end
         -- move arm in aim direction if holding an item
@@ -752,6 +753,7 @@ local update = function (dt)
             -- apply velocity
             target = a.pos + (a.vel * dt)
         end
+        status_effects.update(dt, a)
         if a.shape then
             -- move hitbox
             target = target + a.shape.pos
@@ -992,8 +994,13 @@ return {
                 remove_actor(a)
             end
         end,
+        get_group = get_group,
         draw = draw_actor,
         add_to_inventory = add_to_inventory,
         pick_up_item = pick_up_item,
-    }
+        status_effects = {
+            apply = status_effects.apply,
+            remove = status_effects.remove,
+        },
+    },
 }

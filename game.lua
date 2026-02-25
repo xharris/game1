@@ -31,6 +31,7 @@ return {
 
     HP = 10,
     PLAYER_ARM_DIST = 8,
+    INF_TIME = -100,
     
     ---@type Level[]
     levels = {},

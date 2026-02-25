@@ -2,11 +2,28 @@ local actors = require 'actors'
 local api = require 'api'
 local assets = require 'assets'
 local animation = require 'animation'
-local a = require 'animations'
+local anims = require 'animations'
+
+---@type EvtStatusEffectApplied
+local status_effect_applied = function (a, name)
+    if name == 'sleeping' then
+        animation.timeline(anims.sit(a, true))
+    end
+end
+
+---@type EvtStatusEffectRemoved
+local status_effect_removed = function (a, name)
+    if name == 'sleeping' then
+        animation.timeline(anims.stand(a), anims.hand_idle())
+    end
+end
 
 ---@type State
 return {
     load = function ()
+        events.status_effect.applied.connect(status_effect_applied)
+        events.status_effect.removed.connect(status_effect_removed)
+
         api.camera.set_scale(game.CAMERA_ZOOM)
 
         -- load ground level
@@ -21,7 +38,8 @@ return {
 
         -- player is sitting by tree
         player.pos.x = player.pos.x - 16
-        animation.timeline(a.sit(player))
+        player.scale.x = -math.abs(player.scale.x)
+        api.actor.status_effects.apply(player, 'sleeping', game.INF_TIME)
         
         -- add big tree
         local start_cell = api.level.get_cell(level_idx, 1)

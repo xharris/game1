@@ -77,6 +77,13 @@ end
 ---@type Tween[]
 local tweens = {}
 
+local is_animating = {}
+
+---@param subject any
+M.is_animating = function (subject)
+    return is_animating[subject] and is_animating[subject] > 0
+end
+
 ---@param twn Tween
 local do_next_step = function (twn)
     local wait = false
@@ -95,6 +102,8 @@ local do_next_step = function (twn)
                 ease(step.ease or 1)
                 -- steppedEase(step.step, step.snap, step.bias)
             )
+            log.debug('add tween', twn.name, step.target, step.duration, 'sec')
+            is_animating[twn.subject] = (is_animating[twn.subject] or 0) + 1
             lume.push(twn.tweens, new_tween)
         end
         if (step.delay or 0) > 0 then
@@ -112,6 +121,7 @@ end
 M.animate = function (name, subject, steps)
     for _, twn in ipairs(tweens) do
         if twn.name == name then
+            is_animating[twn.subject] = (is_animating[twn.subject] or 1) - 1
             twn.abort = true
         end
     end
@@ -133,11 +143,15 @@ end
 
 ---@param ... (TimelineStep?)[]
 M.timeline = function (...)
+    local subject
     for i = 1, select("#", ...) do
         for _, step in ipairs(select(i, ...)) do
             ---@cast step TimelineStep?
             if step and step.subject then
-                log.debug('animate', step.name, step.subject)
+                if subject ~= step.subject then
+                    subject = step.subject
+                    log.debug('animation subject', subject)
+                end
                 M.animate(step.name, step.subject, step.steps)
             end
         end

@@ -8,6 +8,7 @@ love.math.setRandomSeed(game.SEED)
 
 log = require 'lib.log'
 lume = require 'lib.lume'
+events = require 'events'
 log.serialize = lume.serialize
 
 shove = require 'lib.shove'
@@ -15,6 +16,7 @@ local input = require 'input'
 local animation = require 'animation'
 local tick = require 'lib.tick'
 local api = require 'api'
+local status_effects = require 'status_effects'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
 -- push.setupScreen(800, 600, {upscale="normal"})
@@ -61,6 +63,12 @@ function love.draw()
         state.draw()
     end
     shove.endDraw()
+end
+
+function love.keypressed(...)
+    for _, player in ipairs(api.actor.get_group('player')) do
+        status_effects._key_pressed(player, ...)
+    end
 end
 
 local function error_printer(msg, layer)

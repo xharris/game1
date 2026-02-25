@@ -8,5 +8,6 @@
   "workspace.checkThirdParty": false,
   "diagnostics.globals": ["log", "lume", "vector", "vec2", "const",
         "game",
-        "shove"]
+        "shove",
+        "events"]
 }

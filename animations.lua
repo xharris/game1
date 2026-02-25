@@ -1,6 +1,7 @@
 local M = {}
 
 local hands = require 'render.hands'
+local assets = require 'assets'
 
 local rad = math.rad
 
@@ -59,7 +60,8 @@ M.hand_swing_down = function (duration)
 end
 
 ---@param a Actor
-M.sit = function (a)
+---@param close_eyes? boolean
+M.sit = function (a, close_eyes)
     ---@type TimelineStep[]
     return {
         {
@@ -99,7 +101,7 @@ M.sit = function (a)
                 {
                     duration = 0,
                     target = {
-                        frame = 3,
+                        frame = close_eyes and assets.player_frame.sit_sleep[1] or assets.player_frame.sit[1],
                     }
                 }
             }
@@ -147,7 +149,7 @@ M.stand = function (a)
                 {
                     duration = 0,
                     target = {
-                        frame = 1,
+                        frame = assets.player_frame.idle[1],
                     }
                 }
             }

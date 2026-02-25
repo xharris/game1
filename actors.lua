@@ -144,4 +144,16 @@ M.sword = function ()
     )
 end
 
+--[[
+
+state = 'sleeping',
+status_effects = {
+    move_stunned = 3, -- 3 sec left
+    aim_stunned = 3,
+    poisoned = 5.5,
+    burning = 1
+}
+
+]]
+
 return M 

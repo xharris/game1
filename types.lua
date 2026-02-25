@@ -79,3 +79,4 @@
 ---@field faction? Faction
 ---@field hates? Faction[]
 ---@field breadcrumbs? {capacity:number, cd:number, points:Vector.lua} throttled position history
+---@field status_effects? table<string, number> {name:time_left}
