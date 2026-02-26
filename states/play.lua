@@ -18,11 +18,38 @@ local status_effect_removed = function (a, name)
     end
 end
 
+---@type EvtLevelAdded
+local level_added = function (level_idx, level)
+    for _, a in ipairs(api.actor.get_group('level_cell')) do
+        if a.level_cell.level == level_idx and a.level_cell.type == game.TILE.exit then
+            -- add stairs to next level
+            log.debug('add stairs', a.pos + (api.level.cell_size() / 2))
+            api.actor.add{
+                pos = a.pos + (api.level.cell_size() / 2),
+                level_exit = true,
+                shape = {
+                    pos = vec2(0, 0),
+                    size = vec2(64, 64),
+                    tag = 'area',
+                    debug = true,
+                },
+                sprite = {
+                    frame = 1,
+                    frames = vec2(1, 1),
+                    off = vec2(32, 32),
+                    path = assets.stairs,
+                }
+            }
+        end
+    end
+end
+
 ---@type State
 return {
     load = function ()
         events.status_effect.applied.connect(status_effect_applied)
         events.status_effect.removed.connect(status_effect_removed)
+        events.level.added.connect(level_added)
 
         api.camera.set_scale(game.CAMERA_ZOOM)
 
@@ -33,7 +60,6 @@ return {
 
         -- add player 
         local player = api.actor.add(actors.player(1))
-        player.stunned = true
         api.level.enter(level_idx, player)
 
         -- player is sitting by tree

@@ -28,7 +28,7 @@
 ---@field size Vector.lua
 ---@field disabled? boolean
 ---@field knockback? number [tag=hit] collision knockback strength
----@field cd? number cooldown
+---@field cd? number cooldown (unused??)
 ---@field debug? boolean
 
 ---@class Ai

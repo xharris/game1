@@ -80,8 +80,7 @@
 ### Intro
 
 - [x] player wakes up on ground sitting against tree
-- [ ] move to stand up
-- tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
+- [x] move to stand up
 
 ### Enter maze
 
@@ -136,6 +135,8 @@
 ### TODO Boss every 3 levels
 
 ## After prototyping
+
+- [ ] tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
 
 ### Goals
 

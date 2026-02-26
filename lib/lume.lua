@@ -763,6 +763,9 @@ local ripairs_iter = function(t, i)
   end
 end
 
+---@generic V
+---@param t V[]
+---@return fun():number,V
 function lume.ripairs(t)
   return ripairs_iter, t, (#t + 1)
 end

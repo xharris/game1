@@ -3,6 +3,7 @@
 - The goal and tasks of this project is outlined in `README.md`
 - Logs are printed to `logs.txt`
 - Do not implement `TODO` unless explicitly asked to
+- Avoid using `goto`
 
 ## Coding Style
 

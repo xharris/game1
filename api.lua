@@ -504,6 +504,7 @@ local add_level = function (theme, tiles, width)
         },
         alt = alt,
     }
+    events.level.added.emit(level_idx, level)
     return level_idx, level
 end
 
@@ -670,7 +671,7 @@ local update = function (dt)
             camera.set_pos(pos.x, pos.y - (a.alt or 0))
             camera.position_smoothing = 0.1
         end
-        if a.move_dir and not a.stunned then
+        if a.move_dir then
             -- movement input
             local movex, movey = a.move_dir.x, a.move_dir.y
             if a.player then
@@ -749,11 +750,11 @@ local update = function (dt)
                 remove_actor(a)
             end
         end
+        status_effects.update(dt, a)
         if a.vel then
             -- apply velocity
             target = a.pos + (a.vel * dt)
         end
-        status_effects.update(dt, a)
         if a.shape then
             -- move hitbox
             target = target + a.shape.pos

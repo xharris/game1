@@ -2,7 +2,7 @@ local M = {}
 
 local input = require 'input'
 
----@alias StatusEffectName 'sleeping'
+---@alias StatusEffectName 'sleeping'|'stunned'
 
 ---@class StatusEffect
 ---@field apply? fun(a:Actor, time_left:number)
@@ -40,27 +40,37 @@ M.update = function (dt, a)
                 time_left = new_time_left
             end
         end
-        status_effs[name] = time_left
-        if time_left ~= game.INF_TIME and time_left <= 0 then
+        -- update may have already removed the effect; don't resurrect or double-remove
+        if not status_effs[name] then
+        elseif time_left ~= game.INF_TIME and time_left <= 0 then
             -- status effect expired
             M.remove(a, name)
+        else
+            status_effs[name] = time_left
         end
     end
 end
 
 ---@param a Actor
 ---@param name StatusEffectName
----@param duration any
+---@param duration number
 M.apply = function(a, name, duration)
     if not a.status_effects then
         a.status_effects = {}
     end
     local t = M.effects[name]
+    log.debug('apply', name, duration == game.INF_TIME and 'INF_TIME' or duration)
     if t and t.apply then
         t.apply(a, duration)
         events.status_effect.applied.emit(a, name)
     end
     a.status_effects[name] = duration
+end
+
+---@param a Actor
+---@param name StatusEffectName
+M.has = function (a, name)
+    return a.status_effects ~= nil and a.status_effects[name] ~= 0
 end
 
 ---@param a Actor

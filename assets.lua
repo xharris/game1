@@ -17,6 +17,8 @@ M.player_frame = {
     walk = {6,7},
 }
 
+M.stairs = 'assets/stairs.png'
+
 -- TODO add _frames/_frame for other sprites
 
 return M

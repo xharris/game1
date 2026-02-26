@@ -1,3 +1,4 @@
+--- Create hitboxes in a pattern
 local M = {}
 
 local math2 = require 'lib.math2'
