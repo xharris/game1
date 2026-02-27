@@ -3,12 +3,16 @@
 ---@field update? fun(dt:number)
 ---@field draw? fun()
 
----@alias LevelTheme 'forest'|'castle'
-
 ---@class Level
 ---@field alt number
----@field theme LevelTheme
+---@field theme level_theme
 ---@field width number
+
+---@class NextLevel
+---@field name string
+---@field theme level_theme
+---@field tiles TILE[]
+---@field width number `tiles` width
 
 ---@class LevelCell
 ---@field level number which level this belongs to
@@ -42,14 +46,17 @@
 ---@alias Faction 'human'|'wild_aggro'
 
 ---@class Actor
+---@field name? string
 ---@field id? string
 ---@field group? Group must be set before calling add_actor
 ---@field owner? string id
 ---@field player? number
 ---@field z? number draw order
+---@field y_sort? boolean `z` is treated as offset
 ---@field pos? Vector.lua
 ---@field off? Vector.lua render offset
 ---@field scale? Vector.lua render scale
+---@field alpha? number [0,1] opacity
 ---@field vel? Vector.lua
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
@@ -65,14 +72,14 @@
 ---@field map_path? {x:number, y:number}[]
 ---@field tile_path? {x:number, y:number}[]
 ---@field start_level? number
----@field start_tile? number tile index this actor spawned at, if they used an entrance
+---@field start_tile? number[] tile index this actor spawned at for each level
 ---@field inventory? {items:Item[], capacity:number}
 ---@field item? Item this is an item
 ---@field shape? Shape
 ---@field range? number aim / attacks / projectiles
 ---@field level_cell? LevelCell this is a level tile
 ---@field size? Vector.lua
----@field level_exit? boolean this is a level exit
+---@field level_exit? NextLevel this is a level exit
 ---@field current_level? number
 ---@field light? {color:string, radius:number}
 ---@field ai? Ai targets must have breadcrumbs

@@ -10,13 +10,15 @@ local clone = lume.clone
 M.player = function (player)
     ---@type Actor
     return {
+        name = 'PLAYER'..tostring(player),
         group = 'player',
-        z = 10,
+        z = 25,
+        y_sort = true,
         player = player,
         pos = vec2(),
         vel = vec2(),
         move_dir = vec2(),
-        max_move_speed = 100,
+        max_move_speed = game.PLAYER_MAX_MOVE_SPEED,
         mass = 10,
         hp = game.HP,
         alt = 0,
@@ -80,7 +82,9 @@ end
 M.slime = function ()
     ---@type Actor
     return {
+        name = 'SLIME',
         z = 10,
+        y_sort = true,
         enemy = 'slime',
         pos = vec2(),
         off = -vec2(16, 16),
@@ -114,7 +118,9 @@ end
 M.item = function (item, sprite)
     ---@type Actor
     return {
+        name = item.name,
         z = 10,
+        y_sort = true,
         item = clone(item),
         pos = vec2(),
         off = -vec2(16, 16),
@@ -131,7 +137,7 @@ end
 M.sword = function ()
     return M.item(
         {
-            name='sword',
+            name='SWORD',
             cooldown = 1,
         },
         {

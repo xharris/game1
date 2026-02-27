@@ -9,6 +9,10 @@ local setColor = love.graphics.setColor
 local color = lume.color
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
+local abs = math.abs
+local lerp = lume.lerp
+local min = math.min
+local max = math.max
 
 ---@param path string
 local get_objects = lume.memoize(function(path)
@@ -17,6 +21,28 @@ local get_objects = lume.memoize(function(path)
     local quad = love.graphics.newQuad(0, 0, 1, 1, img)
     return img, quad
 end)
+
+---@param dt number
+---@param a Actor
+---@param players Actor[]
+M.update = function (dt, a, players)
+    if not a.alt then
+        return
+    end
+    local alpha = 0
+    local min_dist = game.LEVEL_ALT / 2
+    for _, p in ipairs(players) do
+        local dist = a.alt - p.alt
+        if dist == 0 then
+            alpha = max(alpha, 1)
+        elseif dist < 0 and abs(dist) <= min_dist then
+            alpha = max(alpha, lerp(1, 0.5, abs(dist) / min_dist))
+        elseif dist < 0 then
+            alpha = max(alpha, 0.5)
+        end
+    end
+    a.alpha = alpha
+end
 
 ---@param a Actor
 M.draw = function (a)
@@ -34,7 +60,7 @@ M.draw = function (a)
     if side_color then
         -- draw 'side'
         push()
-        setColor(color(side_color, 0.8))
+        setColor(color(side_color, a.alpha or 1))
         rectangle("fill", 0, a.size.y, a.size.x, 5)
         pop()
     end

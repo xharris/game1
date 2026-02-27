@@ -1,4 +1,4 @@
-return {
+local G = {
     DISPLAY = 2,
     FULLSCREEN = false,
     WINDOW_SCALE = 0.5,
@@ -20,7 +20,7 @@ return {
         '#03a9f4', -- entrance
         '#8BC34A', -- exit
     },
-    LEVEL_ALT = 600,
+    LEVEL_ALT = 50,
     ---@enum TILE
     TILE = {
         none = 0,
@@ -28,13 +28,46 @@ return {
         entrance = 2,
         exit = 3,
     },
+    ---@enum level_theme
+    THEME = {
+        forest = 'forest',
+        castle = 'castle',
+    },
 
     HP = 10,
     PLAYER_ARM_DIST = 8,
     INF_TIME = -100,
+    PLAYER_MAX_MOVE_SPEED = 120,
     
     ---@type Level[]
     levels = {},
+
     ---@type Actor[]
     actors = {},
 }
+
+---@type NextLevel
+G.START_LEVEL = {
+    name = 'start',
+    theme = G.THEME.forest,
+    tiles = {G.TILE.entrance, G.TILE.ground, G.TILE.exit},
+    width = 3,
+}
+
+---@type NextLevel[]
+G.LEVELS = {
+    {
+        name = 'forest1',
+        theme = G.THEME.forest,
+        tiles = {
+            1, 1, 1, 1, 1,
+            1, 0, 1, 0, 1,
+            1, 2, 1, 3, 1,
+            0, 0, 1, 0, 1,
+            1, 1, 1, 0, 1,
+        },
+        width = 5,
+    },
+}
+
+return G

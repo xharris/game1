@@ -11,7 +11,7 @@ local light = require 'light'
 local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
 
-local render_level_tile = require 'render.level_tile'
+local render_level_tile = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
 local render_hands = require 'render.hands'
 
@@ -153,6 +153,9 @@ local add_actor = function (a)
         id = id + 1
         a.id = tostring(id)
     end
+    if not a.name then
+        a.name = 'ENT#'..tostring(a.id)
+    end
     a.z = a.z or 0
     if not lume.find(game.actors, a) then
         lume.push(game.actors, a)
@@ -179,6 +182,9 @@ local add_actor = function (a)
             actor_factions[a.faction] = {}
         end
         lume.push(actor_factions[a.faction], a)
+    end
+    if not a.alt and #game.levels > 0 then
+        _, a.alt = game.levels[#game.levels].alt
     end
     return a
 end
@@ -396,29 +402,33 @@ local enter_level = function (level_idx, a)
     if not a.start_level then
         a.start_level = level_idx
     end
-    -- at starting level
-    if level_idx == a.start_level then
-        local place = false
-        if not a.start_tile then
-            if a.enemy then
-                -- place enemy in random tile
-                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
-                place = true
-            end
-            if a.player then
-                -- place at random entrance
-                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
-                place = true
-            end
-            if a.item then
-                a.start_tile = randomchoice(get_tiles_of_type(tiles, TILE.ground))
-                place = true
-            end
-        end
-        if place and a.start_tile then
-            place_at_level_tile(tiles, a, a.start_tile)
-        end
+    local place = false
+    if not a.start_tile then
+        a.start_tile = {}
     end
+    if not a.start_tile[level_idx] then
+        if a.enemy then
+            -- place enemy in random tile
+            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            place = true
+        end
+        if a.player then
+            -- place at random entrance
+            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+            place = true
+        end
+        if a.item then
+            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            place = true
+        end
+    else
+        place = true
+    end
+    if place and a.start_tile[level_idx] then
+        log.debug('place', a.group, 'at', a.start_tile[level_idx])
+        place_at_level_tile(tiles, a, a.start_tile[level_idx])
+    end
+    
     a.alt = level.alt
 end
 
@@ -441,12 +451,19 @@ local get_current_level = function(a)
     return nearest_level, level_idx
 end
 
+local cell_size = lume.memoize(function ()
+    return vec2(
+        game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
+        game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
+    )
+end)
+
 --- local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
----@param theme LevelTheme
----@param tiles TILE[]
----@param width number
+---@param next_level NextLevel
 ---@return number idx, Level level
-local add_level = function (theme, tiles, width)
+local add_level = function (next_level)
+    local theme, tiles, width = next_level.theme, next_level.tiles, next_level.width
+
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
     log.debug("add level", level_idx, "alt", alt)
@@ -465,6 +482,7 @@ local add_level = function (theme, tiles, width)
         local ix, iy = math2.array1d_to_array2d(i, width)
         -- add level tile
         local level_tile = add_actor{
+            name = 'LEVEL_CELL',
             group = 'level_cell',
             pos = vec2(ix+ox, iy+oy) * (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE),
             level_cell = {
@@ -479,7 +497,8 @@ local add_level = function (theme, tiles, width)
                 size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
             } or nil,
             alt = alt,
-            z = -100 + iy,
+            z = -100,
+            y_sort = true,
         }
         lume.push(level_tiles, level_tile)
     end
@@ -494,16 +513,26 @@ local add_level = function (theme, tiles, width)
     end
     local exit_tile = tiles[exit]
     exit_tile.level_cell.type = 3
-    add_actor{
-        pos = exit_tile.pos + (game.LEVEL_CELL_SIZE / 2),
-        level_exit = true,
+    local level_exit = add_actor{
+        name = 'LEVEL_EXIT',
+        pos = exit_tile.pos + (cell_size() / 2),
+        level_exit = randomchoice(game.LEVELS),
         shape = {
             tag = 'area',
             pos = vec2(),
             size = vec2(32, 32),
         },
+        sprite = {
+            frame = 1,
+            frames = vec2(1, 1),
+            off = vec2(32, 32),
+            path = assets.stairs,
+        },
         alt = alt,
+        z = exit_tile.z + 10,
+        y_sort = true,
     }
+    log.debug('add level exit', level_exit.pos)
     events.level.added.emit(level_idx, level)
     return level_idx, level
 end
@@ -604,7 +633,11 @@ end
 
 local xform = love.math.newTransform()
 
+---@param a Actor
 local get_z = function (a)
+    if a.y_sort then
+        return a.pos.y - (a.z or 0) + (a.alt or 0)
+    end
     return (a.z or 0) + (a.alt or 0)
 end
 
@@ -640,7 +673,7 @@ local draw_actor = function (a, alt)
         0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
         a.off and a.off.x or 0, a.off and a.off.y or 0
     )
-    setColor(1,1,1,1)
+    setColor(1,1,1,a.alpha or 1)
     for _, renderer in ipairs(renderers) do
         push()
         renderer(a)
@@ -653,12 +686,6 @@ end
 local update = function (dt)
     local need_sort = false
     for _, a in ipairs(game.actors) do
-        local z = get_z(a)
-        if z ~= last_z[a.id] then
-            -- need z sorting
-            last_z[a.id] = z
-            need_sort = true
-        end
         if a.player and a.pos then
             -- set camera position
             local pos = a.pos
@@ -740,7 +767,7 @@ local update = function (dt)
                 a.alt_v = 0
             end
         end
-        if a.alt and a.alt < get_level_alt(-1) then
+        if a.alt and a.alt < get_level_alt(0) then
             -- out of bounds
             if a.start_level then
                 log.debug("out of bounds, respawn at start")
@@ -750,7 +777,12 @@ local update = function (dt)
                 remove_actor(a)
             end
         end
+
+        -- update other components
         status_effects.update(dt, a)
+        local players = get_group('player')
+        render_level_tile.update(dt, a, players)
+
         if a.vel then
             -- apply velocity
             target = a.pos + (a.vel * dt)
@@ -806,19 +838,29 @@ local update = function (dt)
                     other.vel = other.vel + norm * a.shape.knockback
                 end
                 -- level exit
-                if a.player and other.level_exit then
+                local level_exit = other.level_exit
+                if a.player and level_exit then
                     local _, current_level_idx = get_current_level(a)
                     local next_level = current_level_idx + 1
                     log.debug("player at alt", a.alt,"move from level", current_level_idx, "to", next_level)
                     if next_level > #game.levels then
-                        add_level('castle')
+                        add_level(level_exit)
                     end
                     enter_level(next_level, a)
                 end
             end
-        else
+        elseif target then
             a.pos:set(target)
         end
+
+        local z = get_z(a)
+        if z ~= last_z[a.id] then
+            -- need z sorting
+            log.debug(a.name, 'z', get_z(a))
+            last_z[a.id] = z
+            need_sort = true
+        end
+        
         _, a.current_level = get_current_level(a)
         -- lighting
         if a.light then
@@ -973,12 +1015,7 @@ return {
         enter = enter_level,
         to_grid = to_grid,
         get_cell = get_level_cell,
-        cell_size = lume.memoize(function ()
-            return vec2(
-                game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
-                game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
-            )
-        end),
+        cell_size = cell_size,
     },
     actor = {
         add = add_actor,
