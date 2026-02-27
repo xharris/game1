@@ -9,6 +9,7 @@ local G = {
 
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
+    DRAW_Z_ORDER = false,
 
     CAMERA_ZOOM = 1.5,
     -- big map square section
@@ -20,7 +21,7 @@ local G = {
         '#03a9f4', -- entrance
         '#8BC34A', -- exit
     },
-    LEVEL_ALT = 50,
+    LEVEL_ALT = 96,
     ---@enum TILE
     TILE = {
         none = 0,

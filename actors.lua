@@ -12,7 +12,7 @@ M.player = function (player)
     return {
         name = 'PLAYER'..tostring(player),
         group = 'player',
-        z = 25,
+        z = 25 - 16,
         y_sort = true,
         player = player,
         pos = vec2(),

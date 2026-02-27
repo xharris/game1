@@ -636,9 +636,9 @@ local xform = love.math.newTransform()
 ---@param a Actor
 local get_z = function (a)
     if a.y_sort then
-        return a.pos.y - (a.z or 0) + (a.alt or 0)
+        return a.pos.y + (a.z or 0) - (a.alt or 0)
     end
-    return (a.z or 0) + (a.alt or 0)
+    return (a.z or 0)
 end
 
 ---@type table<string, number>
@@ -680,6 +680,17 @@ local draw_actor = function (a, alt)
         pop()
     end
     pop()
+    if game.DRAW_Z_ORDER then
+        -- draw z order
+        pop = transform(
+            a.pos.x, get_z(a),
+            0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
+            0, 0
+        )
+        setColor(0,0,1,1)
+        rectangle("fill", -2, -2, 4, 4)
+        pop()
+    end
 end
 
 
@@ -856,7 +867,6 @@ local update = function (dt)
         local z = get_z(a)
         if z ~= last_z[a.id] then
             -- need z sorting
-            log.debug(a.name, 'z', get_z(a))
             last_z[a.id] = z
             need_sort = true
         end

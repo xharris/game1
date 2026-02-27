@@ -4,8 +4,6 @@ local assets = require 'assets'
 local animation = require 'animation'
 local anims = require 'animations'
 
-local randomchoice = lume.randomchoice
-
 ---@type EvtStatusEffectApplied
 local status_effect_applied = function (a, name)
     if name == 'sleeping' then
@@ -40,13 +38,13 @@ return {
         player.scale.x = -math.abs(player.scale.x)
         -- ...sleeping
         -- api.actor.status_effects.apply(player, 'sleeping', game.INF_TIME)
-        
+
         -- add big tree
         local start_cell = api.level.get_cell(level_idx, 1)
         local cell_size = api.level.cell_size()
         local big_tree = api.actor.add{
             name = 'BIG_TREE',
-            z = 58,
+            z = 58 - 60,
             y_sort = true,
             pos = start_cell.pos + (cell_size / 2),
             sprite = {
