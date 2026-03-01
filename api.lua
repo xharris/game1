@@ -33,6 +33,9 @@ local sign = lume.sign
 local rad = math.rad
 local max = math.max
 local transform = math2.transform
+local circle = love.graphics.circle
+local blend = math2.blend
+local line = love.graphics.line
 
 local world = bump.newWorld()
 
@@ -215,14 +218,27 @@ local camera_follow = function (a, immediate)
     end
 end
 
+local cell_size = lume.memoize(function ()
+    return vec2(
+        game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
+        game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
+    )
+end)
+
 ---@param tiles Actor[]
 ---@param a Actor
 ---@param idx number
 local place_at_level_tile = function (tiles, a, idx)
     local tile = tiles[idx] or nil
     if tile then
-        local center = (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE) / 2
-        a.pos = tile.pos + center
+        local offset = cell_size() / 2
+        if a.item then
+            offset = vec2(
+                love.math.random(30, cell_size().x - 60),
+                love.math.random(30, cell_size().y - 60)
+            )
+        end
+        a.pos = tile.pos + offset
         a.alt = tile.alt
         a.alt_v = 0
         if a.player then
@@ -232,15 +248,6 @@ local place_at_level_tile = function (tiles, a, idx)
     else
         log.warn("no start tile found", a)
     end
-end
-
----@param tiles Actor[]
----@param a Actor
----@param filters? ActorFilter[]
----@return Actor? level_cell
-local place_at_random_cell = function (tiles, a, filters)
-    tiles = filters.apply(tiles, filters)
-    return randomchoice(tiles)
 end
 
 ---@param a Actor
@@ -285,6 +292,8 @@ local drop_item = function (a, idx)
     end
 end
 
+---@param a Actor
+---@param item Item
 local equip_item = function (a, item)
     if item.equipped then
         return
@@ -300,6 +309,7 @@ local equip_item = function (a, item)
     if item_module.hold_in_hand and a.hands.right then
         a.hands.right.item = item_module.sprite()
     end
+    events.item.equipped.emit(a, item)
 end
 
 ---@param a Actor
@@ -495,13 +505,6 @@ local get_current_level = function(a)
     end
     return nearest_level, level_idx
 end
-
-local cell_size = lume.memoize(function ()
-    return vec2(
-        game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
-        game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
-    )
-end)
 
 ---@param a Actor
 ---@param cell cell_type
@@ -782,11 +785,32 @@ local draw_actor = function (a, alt)
         rectangle("fill", -2, -2, 4, 4)
         pop()
     end
+    if game.DRAW_AIM_POSITION and a.aim_position then
+        -- aim position
+        pop = transform(a.aim_position.x, a.aim_position.y, 0, 1, 1, 0, 0)
+        setColor(0,0,1,1)
+        circle('fill', 0, 0, 12)
+        pop()
+    end
+    -- aim dir
+    if game.DRAW_AIM_POSITION and a.aim_dir then
+        pop = transform(a.pos.x + a.aim_dir.x * 30, a.pos.y - alt + a.aim_dir.y * 30,
+            0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
+            a.off and a.off.x or 0, a.off and a.off.y or 0)
+        setColor(0,0,0.8,1)
+        circle('fill', 0, 0, 8)
+        pop()
+    end
 end
+
+local aim_dir = {}
 
 local update = function (dt)
     local need_sort = false
     for _, a in ipairs(game.actors) do
+        if a.delta_mod then
+            dt = dt * a.delta_mod
+        end
         if a.player and a.pos then
             -- set camera position
             local pos = a.pos
@@ -822,16 +846,22 @@ local update = function (dt)
             end
         end
         if a.player then
-            if a.move_dir and a.move_dir:getmag() > 0 then
-                a.aim_dir = a.move_dir:norm()
-            elseif not a.aim_dir then
-                a.aim_dir = vec2(1,0)
-            end
-
             -- mouse aim direction
-            local _, mx, my = shove.mouseToViewport()
+            local inside, mx, my = shove.mouseToViewport()
             local wx, wy = camera.to_world(mx, my)
-            a.aim_dir = vec2(wx - a.pos.x, wy - (a.pos.y - (a.alt or 0))):norm()
+            local aim_pos = vec2(wx, wy)
+
+            if inside then
+                if not a.aim_position then
+                    a.aim_position = aim_pos
+                else
+                    a.aim_position.x = blend(a.aim_position.x, aim_pos.x)
+                    a.aim_position.y = blend(a.aim_position.y, aim_pos.y)
+                end
+
+                local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
+                a.aim_dir = (a.aim_position - alt_pos):norm()
+            end
 
             -- use item
             if a.inventory and #a.inventory.items > 0 then
@@ -842,6 +872,11 @@ local update = function (dt)
                 end
             end
         end
+
+        if not a.aim_dir and a.move_dir and a.move_dir:getmag() > 0 then
+            a.aim_dir = a.move_dir:norm()
+        end
+
         local target = a.pos
         if a.alt and a.move_dir then
             -- floor/gravity

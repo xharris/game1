@@ -32,6 +32,18 @@ local swing_animations = {
     {a.hand_swing_up(0), a.hand_swing_down(1)},
 }
 
+M.equip = function (a, item)
+    for _, b in ipairs(game.actors) do
+        local b_ref = b
+        -- slow everything down for a sec
+        b.delta_mod = a.id == b.id and 0.8 or 0.2
+        tick.delay(function ()
+            -- reset
+            b_ref.delta_mod = 1
+        end, 1)
+    end
+end
+
 M.activate = function (a, item, hand)
     -- play swing animation
     if hand then

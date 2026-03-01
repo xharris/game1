@@ -9,7 +9,9 @@ local G = {
 
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
+
     DRAW_Z_ORDER = false,
+    DRAW_AIM_POSITION = true,
 
     CAMERA_ZOOM = 1.5,
     CAMERA_SMOOTH = 0.1,
@@ -41,7 +43,7 @@ local G = {
     PLAYER_ARM_DIST = 8,
     INF_TIME = -100,
     PLAYER_MAX_MOVE_SPEED = 120,
-    
+
     ---@type Level[]
     levels = {},
 
@@ -55,7 +57,7 @@ G.START_LEVEL = {
     theme = G.THEME.forest,
     tiles = {G.TILE.entrance, G.TILE.ground, G.TILE.exit},
     width = 3,
-    items = {},
+    items = {'sword'},
 }
 
 ---@type NextLevel[]

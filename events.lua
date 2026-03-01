@@ -55,4 +55,8 @@ M.level = {
     added = event(), ---@alias EvtLevelAdded fun(level_idx:number, level:Level)
 }
 
+M.item = {
+    equipped = event(), ---@alias EvtActorItemEquipped fun(a:Actor, item:Item)
+}
+
 return M

@@ -149,4 +149,13 @@ M.wrap = function(value, min, max)
     return ((value - min) % range) + min
 end
 
+---Asymptotic Average
+---@param x number
+---@param target number
+---@param blend? number [0, 1] default: `0.9`
+M.blend = function (x, target, blend)
+    blend = blend or 0.1
+    return ((1-blend) * x) + (blend * target)
+end
+
 return M

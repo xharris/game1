@@ -49,6 +49,7 @@
 ---@class Actor
 ---@field name? string
 ---@field id? string
+---@field delta_mod? number [1, 0]
 ---@field group? Group must be set before calling add_actor
 ---@field owner? string id
 ---@field player? number
@@ -59,6 +60,7 @@
 ---@field scale? Vector.lua render scale
 ---@field alpha? number [0,1] opacity
 ---@field vel? Vector.lua
+---@field aim_position? Vector.lua
 ---@field aim_dir? Vector.lua
 ---@field move_dir? Vector.lua
 ---@field stunned? boolean
