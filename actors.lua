@@ -129,25 +129,10 @@ M.item = function (item, sprite)
             tag = 'area',
             pos = vec2(-16, -16),
             size = vec2(32, 32),
+            debug = true,
         },
         sprite = sprite
     }
-end
-
-M.sword = function ()
-    return M.item(
-        {
-            name='SWORD',
-            cooldown = 1,
-        },
-        {
-            path = assets.sword,
-            frame = 1,
-            frames = vec2(1, 1),
-            off = vec2(17, 26),
-            scale = vec2(0.75, 0.75),
-        }
-    )
 end
 
 --[[

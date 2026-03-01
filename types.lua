@@ -11,12 +11,13 @@
 ---@class NextLevel
 ---@field name string
 ---@field theme level_theme
----@field tiles TILE[]
+---@field tiles cell_type[]
 ---@field width number `tiles` width
+---@field items string[]
 
 ---@class LevelCell
 ---@field level number which level this belongs to
----@field type TILE
+---@field type cell_type
 ---@field index number
 
 ---@class Item
@@ -41,7 +42,7 @@
 ---@field last_seen? string actor id
 ---@field path? Vector.lua[]
 
----@alias Group 'level_cell'|'player'
+---@alias Group 'entity'|'level_cell'|'player'|'item'
 
 ---@alias Faction 'human'|'wild_aggro'
 
@@ -72,7 +73,7 @@
 ---@field map_path? {x:number, y:number}[]
 ---@field tile_path? {x:number, y:number}[]
 ---@field start_level? number
----@field start_tile? number[] tile index this actor spawned at for each level
+---@field start_cell? number[] tile index this actor spawned at for each level
 ---@field inventory? {items:Item[], capacity:number}
 ---@field item? Item this is an item
 ---@field shape? Shape

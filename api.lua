@@ -10,6 +10,7 @@ local actors = require 'actors'
 local light = require 'light'
 local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
+local filters = require 'actor_filters'
 
 local render_level_tile = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
@@ -37,7 +38,7 @@ local world = bump.newWorld()
 
 ---@param path string
 ---@param colors string[]
----@return TILE[] tiles, number width
+---@return cell_type[] tiles, number width
 local load_maze_from_img = function (path, colors)
     local data = love.image.newImageData(path)
     local tiles = {}
@@ -116,7 +117,7 @@ local draw_hitbox = function (a, c)
 end
 
 ---@param tiles Actor[]
----@param tile TILE
+---@param tile cell_type
 ---@return number[] indexes
 local get_tiles_of_type = function (tiles, tile)
     local idxs = {}
@@ -160,6 +161,9 @@ local add_actor = function (a)
     if not lume.find(game.actors, a) then
         lume.push(game.actors, a)
     end
+    if not a.group then
+        a.group = 'entity'
+    end
     -- add to group
     if a.group and not actor_groups[a.group] then
         actor_groups[a.group] = {}
@@ -189,6 +193,28 @@ local add_actor = function (a)
     return a
 end
 
+---@param a Actor
+---@param immediate? boolean
+local camera_follow = function (a, immediate)
+    if immediate then
+        camera.position_smoothing = nil
+    end
+    local pos = a.pos:clone()
+    if a.alt then
+        pos.y = pos.y - a.alt
+    end
+    if a.move_dir and a.max_move_speed then
+        pos = pos + (a.move_dir * (a.max_move_speed / 2))
+    end
+    if a.aim_dir then
+        pos = pos + (a.aim_dir * 30)
+    end
+    camera.set_pos(pos.x, pos.y)
+    if immediate then
+        camera.position_smoothing = game.CAMERA_SMOOTH
+    end
+end
+
 ---@param tiles Actor[]
 ---@param a Actor
 ---@param idx number
@@ -199,10 +225,22 @@ local place_at_level_tile = function (tiles, a, idx)
         a.pos = tile.pos + center
         a.alt = tile.alt
         a.alt_v = 0
+        if a.player then
+            camera_follow(a, true)
+        end
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
     else
         log.warn("no start tile found", a)
     end
+end
+
+---@param tiles Actor[]
+---@param a Actor
+---@param filters? ActorFilter[]
+---@return Actor? level_cell
+local place_at_random_cell = function (tiles, a, filters)
+    tiles = filters.apply(tiles, filters)
+    return randomchoice(tiles)
 end
 
 ---@param a Actor
@@ -295,23 +333,23 @@ end
 
 ---@param pos Vector.lua
 ---@param alt number
----@return Actor? tile, number? tile_idx, number? level_idx
+---@return Actor? cell, number? cell_index, number? level_idx
 local get_map_pos = function (pos, alt)
     for l, level in ipairs(game.levels) do
         if level.alt == alt then
             -- check tiles in this level
-            for t, tile in ipairs(get_group('level_cell')) do
+            for t, cell in ipairs(get_group('level_cell')) do
                 local size = vec2(
                     game.LEVEL_TILE_SIZE.x * game.LEVEL_CELL_SIZE.x,
                     game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
                 )
-                if tile.level_cell and
-                    pos.x >= tile.pos.x and
-                    pos.y >= tile.pos.y and
-                    pos.x <= tile.pos.x + size.x and
-                    pos.y <= tile.pos.y + size.y
+                if cell.level_cell and
+                    pos.x >= cell.pos.x and
+                    pos.y >= cell.pos.y and
+                    pos.x <= cell.pos.x + size.x and
+                    pos.y <= cell.pos.y + size.y
                 then
-                    return tile, t, l
+                    return cell, t, l
                 end
             end
         end
@@ -378,9 +416,9 @@ local get_level_tile_canvas = lume.memoize(function (_)
 end)
 
 ---@param level number
-local get_level_tiles = function (level)
-    local tiles = get_group('level_cell')
-    return lume.filter(tiles, function (t)
+local get_level_cells = function (level)
+    local cells = get_group('level_cell')
+    return lume.filter(cells, function (t)
         return t.level_cell.level == level
     end)
 end
@@ -392,41 +430,48 @@ end
 
 ---@param level_idx number
 ---@param a Actor
-local enter_level = function (level_idx, a)
+---@param cell_filters? ActorFilter[] for cell placement
+local enter_level = function (level_idx, a, cell_filters)
     local level = game.levels[level_idx]
-    local tiles = get_level_tiles(level_idx)
-    if not level or #tiles == 0 then
-        log.warn("invalid level", level_idx, "level", level, "tiles", #tiles)
+    local cells = get_level_cells(level_idx)
+    if not level or #cells == 0 then
+        log.warn("invalid level", level_idx, "level", level, "tiles", #cells)
         return
     end
     if not a.start_level then
         a.start_level = level_idx
     end
     local place = false
-    if not a.start_tile then
-        a.start_tile = {}
+    if not a.start_cell then
+        a.start_cell = {}
     end
-    if not a.start_tile[level_idx] then
+    if not a.start_cell[level_idx] then
         if a.enemy then
             -- place enemy in random tile
-            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            a.start_cell[level_idx] = filters.randomchoice(cells, 
+                cell_filters or {filters.cell_of_type(TILE.ground)}
+            ).level_cell.index
+            
             place = true
         end
         if a.player then
             -- place at random entrance
-            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
+            a.start_cell[level_idx] = filters.randomchoice(cells, 
+                cell_filters or { filters.cell_of_type(TILE.entrance) }).level_cell.index
             place = true
         end
         if a.item then
-            a.start_tile[level_idx] = randomchoice(get_tiles_of_type(tiles, TILE.ground))
+            a.start_cell[level_idx] = filters.randomchoice(cells, 
+                cell_filters or {filters.cell_of_type(TILE.ground)}
+            ).level_cell.index
             place = true
         end
     else
         place = true
     end
-    if place and a.start_tile[level_idx] then
-        log.debug('place', a.group, 'at', a.start_tile[level_idx])
-        place_at_level_tile(tiles, a, a.start_tile[level_idx])
+    if place and a.start_cell[level_idx] then
+        log.debug('place', a.name, 'at', a.start_cell[level_idx])
+        place_at_level_tile(cells, a, a.start_cell[level_idx])
     end
     
     a.alt = level.alt
@@ -457,6 +502,27 @@ local cell_size = lume.memoize(function ()
         game.LEVEL_TILE_SIZE.y * game.LEVEL_CELL_SIZE.y
     )
 end)
+
+---@param a Actor
+---@param cell cell_type
+---@param dist number
+local near_cell_type = function (a, cell, dist)
+    local a_cell = get_map_pos(a.pos, a.alt)
+    if not a_cell then
+        return filters.noop()
+    end
+    local level = game.levels[a.current_level]
+    local a_pos = vec2(math2.array1d_to_array2d(a_cell.level_cell.index, level.width))
+
+    ---@type ActorFilter
+    return function (a2)
+        if not a2.level_cell or a2.level_cell.type ~= cell or a2.level_cell.level ~= a.current_level then
+            return false
+        end
+        local cell_pos = vec2(math2.array1d_to_array2d(a2.level_cell.index, level.width))
+        return cell_pos:dist(a_pos) <= dist
+    end
+end
 
 --- local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
 ---@param next_level NextLevel
@@ -499,11 +565,12 @@ local add_level = function (next_level)
             alt = alt,
             z = -100,
             y_sort = true,
+            current_level = level_idx,
         }
         lume.push(level_tiles, level_tile)
     end
     -- set exit
-    local tiles = get_level_tiles(level_idx)
+    local tiles = get_level_cells(level_idx)
     local exits = get_tiles_of_type(tiles, TILE.exit)
     local exit
     if #exits > 0 then
@@ -533,6 +600,30 @@ local add_level = function (next_level)
         y_sort = true,
     }
     log.debug('add level exit', level_exit.pos)
+
+    -- put item near entrance
+    local cells = get_level_cells(level_idx)
+    local entrances = filters.apply(cells, {filters.level_cell(level_idx, TILE.entrance)})
+    for _, entrance in ipairs(entrances) do
+        local item_name = randomchoice(next_level.items)
+        if item_name then
+            ---@type ItemModule
+            local item_mod = require('items.'..item_name)
+            local item = add_actor(actors.item(item_mod.item(), item_mod.sprite()))
+            local cell = filters.randomchoice(cells, {
+                filters.level_cell(level_idx, TILE.ground),
+                near_cell_type(entrance, TILE.ground, 4)
+            })
+            if cell then
+                item.pos = cell.pos + (cell_size() / 2)
+                enter_level(level_idx, item, {
+                    filters.level_cell(level_idx, TILE.ground),
+                    near_cell_type(entrance, TILE.ground, 2)
+                })
+            end
+        end
+    end
+
     events.level.added.emit(level_idx, level)
     return level_idx, level
 end
@@ -693,7 +784,6 @@ local draw_actor = function (a, alt)
     end
 end
 
-
 local update = function (dt)
     local need_sort = false
     for _, a in ipairs(game.actors) do
@@ -706,8 +796,8 @@ local update = function (dt)
             if a.aim_dir then
                 pos = pos + (a.aim_dir * 30)
             end
-            camera.set_pos(pos.x, pos.y - (a.alt or 0))
-            camera.position_smoothing = 0.1
+            camera_follow(a)
+            camera.position_smoothing = game.CAMERA_SMOOTH
         end
         if a.move_dir then
             -- movement input
@@ -815,7 +905,7 @@ local update = function (dt)
                     if other.hp <= 0 then
                         if other.player then
                             log.info("player died")
-                            other.pos = tile_pos(other.start_tile) + (game.LEVEL_TILE_SIZE/2)
+                            other.pos = tile_pos(other.start_cell) + (game.LEVEL_TILE_SIZE/2)
                             world:update(other,
                                 other.pos.x + other.shape.pos.x,
                                 other.pos.y + other.shape.pos.y
@@ -1026,6 +1116,7 @@ return {
         to_grid = to_grid,
         get_cell = get_level_cell,
         cell_size = cell_size,
+        get_pos = get_map_pos,
     },
     actor = {
         add = add_actor,

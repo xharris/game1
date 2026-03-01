@@ -12,6 +12,8 @@ local G = {
     DRAW_Z_ORDER = false,
 
     CAMERA_ZOOM = 1.5,
+    CAMERA_SMOOTH = 0.1,
+
     -- big map square section
     LEVEL_CELL_SIZE = vec2(10, 10),
     -- tile in each map cell
@@ -22,7 +24,7 @@ local G = {
         '#8BC34A', -- exit
     },
     LEVEL_ALT = 96,
-    ---@enum TILE
+    ---@enum cell_type
     TILE = {
         none = 0,
         ground = 1,
@@ -53,6 +55,7 @@ G.START_LEVEL = {
     theme = G.THEME.forest,
     tiles = {G.TILE.entrance, G.TILE.ground, G.TILE.exit},
     width = 3,
+    items = {},
 }
 
 ---@type NextLevel[]
@@ -68,6 +71,7 @@ G.LEVELS = {
             1, 1, 1, 0, 1,
         },
         width = 5,
+        items = {'sword'}
     },
 }
 

@@ -12,7 +12,7 @@ M.hold_in_hand = true
 
 M.item = function ()
     return {
-        name='sword',
+        name='SWORD',
         cooldown = 1,
     }
 end

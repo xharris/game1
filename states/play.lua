@@ -3,6 +3,8 @@ local api = require 'api'
 local assets = require 'assets'
 local animation = require 'animation'
 local anims = require 'animations'
+local filters = require 'actor_filters'
+local math2 = require 'lib.math2'
 
 ---@type EvtStatusEffectApplied
 local status_effect_applied = function (a, name)
@@ -17,6 +19,7 @@ local status_effect_removed = function (a, name)
         animation.timeline(anims.stand(a), anims.hand_idle())
     end
 end
+
 
 ---@type State
 return {

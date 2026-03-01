@@ -84,18 +84,18 @@
 
 ### Enter maze
 
-- player walks right to wood stairs
+- [x] player walks right to wood stairs
   - player sees a sign
   - walking up to the sign shows warnings
     - dont die
     - dont fall
-- walking into stairs teleports player to next level
-- player walks around maze
+- [x] walking into stairs teleports player to next level
+- [x] player walks around maze
 
 ### Level tile: sword in ground
 
-- there is a sword sticking in the ground at least a few blocks away
-- player walks into sword to pick it up
+- [x] there is a sword sticking in the ground at least a few blocks away
+- [x] player walks into sword to pick it up
   - freeze frame with pose
   - sword sound effect
   - thick white line move up sword (masked by sprite)
