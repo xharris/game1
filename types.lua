@@ -11,7 +11,7 @@
 ---@class NextLevel
 ---@field name string
 ---@field theme level_theme
----@field tiles cell_type[]
+---@field cells cell_type[]
 ---@field width number `tiles` width
 ---@field items string[]
 ---@field scenarios string[]

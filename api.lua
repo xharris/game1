@@ -14,7 +14,7 @@ local filters = require 'actor_filters'
 local audio = require 'audio'
 local scenarios = require 'scenarios'
 
-local render_level_tile = require 'render.level_cell'
+local render_level_cell = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
 local render_hands = require 'render.hands'
 
@@ -40,35 +40,8 @@ local line = love.graphics.line
 
 local world = bump.newWorld()
 
----@param path string
----@param colors string[]
----@return cell_type[] tiles, number width
-local load_maze_from_img = function (path, colors)
-    local data = love.image.newImageData(path)
-    local tiles = {}
-    local width = data:getWidth()
-    -- note y comes first in iteration
-    for y = 0, data:getHeight()-1 do
-        for x = 0, width-1 do
-            local idx = math2.array2d_to_array1d(x, y, width)
-            local r,g,b,_ = data:getPixel(x, y)
-            for i, color in ipairs(colors) do
-                local cr,cg,cb,_ = lume.color(color)
-                if eq(cr, r) and eq(cb, b) and eq(cg, g) then
-                    tiles[idx] = i
-                    break
-                end
-            end
-            if not tiles[idx] then
-                tiles[idx] = 0
-            end
-        end
-    end
-    return tiles, width
-end
-
 ---@param idx number
-local tile_pos = function (idx)
+local cell_pos = function (idx)
     return vec2(math2.array1d_to_array2d(idx, game.LEVEL_CELL_SIZE.x)) * game.LEVEL_TILE_SIZE
 end
 
@@ -118,19 +91,6 @@ local draw_hitbox = function (a, c)
         setColor(color(c))
         rectangle('line', x, y, w, h)
     end
-end
-
----@param tiles Actor[]
----@param tile cell_type
----@return number[] indexes
-local get_tiles_of_type = function (tiles, tile)
-    local idxs = {}
-    for i, a in ipairs(tiles) do
-        if a.level_cell and a.level_cell.type == tile then
-            lume.push(idxs, i)
-        end
-    end
-    return idxs
 end
 
 local ticks = {}
@@ -252,12 +212,12 @@ local cell_size = lume.memoize(function ()
     )
 end)
 
----@param tiles Actor[]
+---@param cells Actor[]
 ---@param a Actor
 ---@param idx number
-local place_at_level_tile = function (tiles, a, idx)
-    local tile = tiles[idx] or nil
-    if tile then
+local place_at_level_cell = function (cells, a, idx)
+    local cell = cells[idx] or nil
+    if cell then
         local offset = cell_size() / 2
         if a.item then
             offset = vec2(
@@ -265,8 +225,8 @@ local place_at_level_tile = function (tiles, a, idx)
                 love.math.random(30, cell_size().y - 60)
             )
         end
-        a.pos = tile.pos + offset
-        a.alt = tile.alt
+        a.pos = cell.pos + offset
+        a.alt = cell.alt
         a.alt_v = 0
         camera_follow(a, true)
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
@@ -463,7 +423,7 @@ local enter_level = function (level_idx, a, cell_filters)
     local level = game.levels[level_idx]
     local cells = get_level_cells(level_idx)
     if not level or #cells == 0 then
-        log.warn("invalid level", level_idx, "level", level, "tiles", #cells)
+        log.warn("invalid level", level_idx, "level", level, "cells", #cells)
         return
     end
     if not a.start_level then
@@ -475,7 +435,7 @@ local enter_level = function (level_idx, a, cell_filters)
     end
     if not a.start_cell[level_idx] then
         if a.enemy then
-            -- place enemy in random tile
+            -- place enemy in random cell
             a.start_cell[level_idx] = filters.randomchoice(cells, 
                 cell_filters or {filters.cell_of_type(game.CELL.ground)}
             ).level_cell.index
@@ -501,7 +461,7 @@ local enter_level = function (level_idx, a, cell_filters)
     end
     if place and a.start_cell[level_idx] then
         log.debug('place', a.name, 'at', a.start_cell[level_idx])
-        place_at_level_tile(cells, a, a.start_cell[level_idx])
+        place_at_level_cell(cells, a, a.start_cell[level_idx])
     end
     
     a.alt = level.alt
@@ -547,11 +507,10 @@ local near_cell_type = function (a, cell, dist)
     end
 end
 
---- local tiles, width = load_maze_from_img(assets.maze_test, game.TILE_COLORS)
 ---@param next_level NextLevel
 ---@return number idx, Level level
 local add_level = function (next_level)
-    local theme, tiles, width = next_level.theme, next_level.tiles, next_level.width
+    local theme, cells, width = next_level.theme, next_level.cells, next_level.width
 
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
@@ -564,33 +523,33 @@ local add_level = function (next_level)
         width = width,
     }
     lume.push(game.levels, level)
-    -- create LevelTiles
+    -- create level cells
     ---@type Actor[]
-    local level_tiles = {}
-    for i, tile in ipairs(tiles) do
+    local level_cells = {}
+    for i, cell in ipairs(cells) do
         local ix, iy = math2.array1d_to_array2d(i, width)
         -- add level tile
-        local level_tile = add_actor{
+        local level_cell = add_actor{
             name = 'LEVEL_CELL',
             group = 'level_cell',
-            pos = vec2(ix+ox, iy+oy) * (game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE),
+            pos = vec2(ix+ox, iy+oy) * cell_size(),
             level_cell = {
                 level = level_idx,
-                type = tile,
+                type = cell,
                 index = i,
             },
-            size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
-            shape = tile ~= game.CELL.none and {
+            size = cell_size(),
+            shape = cell ~= game.CELL.none and {
                 tag = 'ground',
                 pos = vec2(0, 0),
-                size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
+                size = cell_size(),
             } or nil,
             alt = alt,
             z = -100,
             y_sort = true,
             current_level = level_idx,
         }
-        lume.push(level_tiles, level_tile)
+        lume.push(level_cells, level_cell)
     end
 
     for _, name in ipairs(next_level.scenarios) do
@@ -612,10 +571,8 @@ end
 ---@param level_idx number
 local to_grid = function (world, level_idx)
     local level = game.levels[level_idx]
-    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
     local ox = -floor(level.width / 2)
-    local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
-    local map_size = level.width * tile_size
+    local min_world = vec2(ox * cell_size().x, ox * cell_size().y)
     local step = game.LEVEL_TILE_SIZE:clone()
     return vec2(
         floor((world.x - min_world.x) / step.x),
@@ -630,7 +587,6 @@ local to_world = function (grid, level_idx)
     local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
     local ox = -floor(level.width / 2)
     local min_world = vec2(ox * tile_size.x, ox * tile_size.y)
-    local map_size = level.width * tile_size
     local step = game.LEVEL_TILE_SIZE:clone()
     return vec2(grid.x * step.x + min_world.x, grid.y * step.y + min_world.y)
 end
@@ -640,17 +596,16 @@ local all_walkable = {}
 ---@param level_idx number
 local update_walkable = function (level_idx)
     local step = game.LEVEL_TILE_SIZE:clone()
-    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
-    local cells_x = tile_size.x / step.x  -- grid cells per tile
-    local cells_y = tile_size.y / step.y
+    local tiles_x = cell_size().x / step.x  -- tiles per cell
+    local tiles_y = cell_size().y / step.y
     local walkable = {}
-    for _, tile in ipairs(get_group('level_cell')) do
-        if tile.level_cell.level == level_idx and tile.level_cell.type ~= game.CELL.none then
-            local g = to_grid(tile.pos, level_idx)
-            for dy = 0, cells_y - 1 do
+    for _, a in ipairs(get_group('level_cell')) do
+        if a.level_cell.level == level_idx and a.level_cell.type ~= game.CELL.none then
+            local g = to_grid(a.pos, level_idx)
+            for dy = 0, tiles_y - 1 do
                 local row = g.y + dy
                 if not walkable[row] then walkable[row] = {} end
-                for dx = 0, cells_x - 1 do
+                for dx = 0, tiles_x - 1 do
                     walkable[row][g.x + dx] = true
                 end
             end
@@ -669,8 +624,7 @@ local get_pathing = function (a, b)
     end
 
     local level = game.levels[a.current_level]
-    local tile_size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE
-    local map_size = level.width * tile_size
+    local map_size = level.width * cell_size()
     -- break up map into grid of size `step`
     local step = game.LEVEL_TILE_SIZE:clone()
 
@@ -725,7 +679,7 @@ end
 local level_canvas = {}
 
 local renderers = {
-    render_level_tile.draw,
+    render_level_cell.draw,
     lume.fn(render_hands.draw, render_hands.LAYER.back_1),
     lume.fn(render_hands.draw, render_hands.LAYER.back_2),
     render_sprite.draw,
@@ -893,7 +847,7 @@ local update = function (dt)
         -- update other components
         status_effects.update(dt, a)
         local players = get_group('player')
-        render_level_tile.update(dt, a, players)
+        render_level_cell.update(dt, a, players)
 
         if a.vel then
             -- apply velocity
@@ -916,7 +870,7 @@ local update = function (dt)
                     if other.hp <= 0 then
                         if other.player then
                             log.info("player died")
-                            other.pos = tile_pos(other.start_cell) + (game.LEVEL_TILE_SIZE/2)
+                            other.pos = cell_pos(other.start_cell) + (game.LEVEL_TILE_SIZE/2)
                             world:update(other,
                                 other.pos.x + other.shape.pos.x,
                                 other.pos.y + other.shape.pos.y

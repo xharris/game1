@@ -63,7 +63,7 @@ local G = {
 G.START_LEVEL = {
     name = 'start',
     theme = G.THEME.forest,
-    tiles = {G.CELL.entrance, G.CELL.ground, G.CELL.exit},
+    cells = {G.CELL.entrance, G.CELL.ground, G.CELL.exit},
     width = 3,
     items = {'sword'},
     scenarios = {},
@@ -74,7 +74,7 @@ G.LEVELS = {
     {
         name = 'forest1',
         theme = G.THEME.forest,
-        tiles = {
+        cells = {
             1, 1, 1, 1, 1,
             1, 0, 1, 0, 1,
             1, 2, 1, 3, 1,
