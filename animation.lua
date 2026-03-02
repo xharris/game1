@@ -12,14 +12,14 @@ local math2_ease = math2.ease
 ---@field ease? number
 ---@field duration number
 ---@field delay? number
----@field target table<string, any>
+---@field target? table<string, any>
 ---@field wait? boolean
 
 ---@class Tween
 ---@field name string
 ---@field subject Actor
 ---@field steps AnimationStep[]
----@field tweens any[]
+---@field tweens fun(dt:number)[]
 ---@field abort? boolean
 
 --- (3, 0): hard cuts, (2, 0): stylized
@@ -84,8 +84,10 @@ M.is_animating = function (subject)
     return is_animating[subject] and is_animating[subject] > 0
 end
 
+local do_next_step
+
 ---@param twn Tween
-local do_next_step = function (twn)
+do_next_step = function (twn)
     local wait = false
     local all_done = #twn.steps == 0
     while #twn.steps > 0 and not wait do
@@ -95,17 +97,30 @@ local do_next_step = function (twn)
             wait = true
         end
         local create_tween = function ()
-            local new_tween = tween.new(
-                step.duration == 0 and 0.0001 or step.duration,
-                twn.subject,
-                step.target,
-                ease(step.ease or 1)
-                -- steppedEase(step.step, step.snap, step.bias)
-            )
-            log.debug('add tween', twn.name, step.target, step.duration, 'sec')
+            log.debug('do step', twn.name, step.target, step.duration, 'sec')
             is_animating[twn.subject] = (is_animating[twn.subject] or 0) + 1
-            lume.push(twn.tweens, new_tween)
+            if step.target then
+                local new_tween = tween.new(
+                    step.duration == 0 and 0.0001 or step.duration,
+                    twn.subject,
+                    step.target,
+                    ease(step.ease or 1)
+                    -- steppedEase(step.step, step.snap, step.bias)
+                )
+                lume.push(twn.tweens, lume.fn(new_tween.update, new_tween))
+            else
+                -- wait without animation
+                local done = false
+                tick.delay(function ()
+                    done = true
+                end, step.duration or 0)
+                local is_done = function (dt)
+                    return done
+                end
+                lume.push(twn.tweens, is_done)
+            end
         end
+
         if (step.delay or 0) > 0 then
             tick.delay(create_tween, step.delay)
         else
@@ -170,7 +185,7 @@ M.update = function (dt)
             local all_done = true
             for j, running_tween in ripairs(twn.tweens) do
                 -- update active tweens
-                if running_tween:update(dt) then
+                if running_tween(dt) then
                     table.remove(twn.tweens, j)
                 else
                     all_done = false

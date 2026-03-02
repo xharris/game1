@@ -30,22 +30,37 @@ end
 ---@type table<Actor, love.Transform>
 local transforms = weakkeytable()
 
----@param e Actor
-local get_transform = function (e)
-    local xform = transforms[e]
+---@param a Actor
+local get_transform = function (a)
+    local xform = transforms[a]
     if not xform then
         xform = love.math.newTransform()
-        transforms[e] = xform
+        transforms[a] = xform
     end
+    xform:reset()
+    if a.pos then
+        xform:translate(a.pos.x, a.pos.y)
+    end
+    if a.scale then
+        xform:scale(a.scale.x, a.scale.y)
+    end
+    if a.sprite then
+        xform:rotate(a.sprite.r or 0)
+        if a.sprite.off then
+            xform:translate(-a.sprite.off.x, -a.sprite.off.y)
+        end
+    end 
     return xform
 end
 
 M.get_transform = get_transform
 
 ---@param x number
-M.round = function (x)
+local round = function (x)
     return floor(x + 0.5)
 end
+
+M.round = round
 
 ---@param x number
 ---@param y number
@@ -98,6 +113,10 @@ M.ease = function(x, c)
         return 0 -- no ease (raw)
     end
 end
+
+M.EASE_IN = 0.2
+M.EASE_OUT = 2.4
+M.EASE_IN_OUT = -3.4
 
 ---@param vel Vector.lua current velocity
 ---@param move Vector.lua
@@ -155,7 +174,7 @@ end
 ---@param blend? number [0, 1] default: `0.9`
 M.blend = function (x, target, blend)
     blend = blend or 0.1
-    return ((1-blend) * x) + (blend * target)
+    return x + (target - x) * blend
 end
 
 return M

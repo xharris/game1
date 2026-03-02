@@ -23,10 +23,15 @@ M.player = function (player)
         hp = game.HP,
         alt = 0,
         inventory = {capacity=1, items={}},
+        cam_follow = {
+            aim_dir_offset = true,
+            move_dir_offset = true,
+        },
         shape = {
             tag = 'body',
-            pos = vec2(-16, 0),
-            size = vec2(32, 16),
+            pos = vec2(-4, 0),
+            size = vec2(8, 8),
+            debug = true,
         },
         range = 48,
         light = {
@@ -87,14 +92,12 @@ M.slime = function ()
         y_sort = true,
         enemy = 'slime',
         pos = vec2(),
-        off = -vec2(16, 16),
         vel = vec2(),
         move_dir = vec2(),
         max_move_speed = 200,
         mass = 10,
         map_path = {},
         hp = game.HP,
-        alt = 0,
         shape = {
             tag = 'body',
             pos = vec2(-16, 0),
@@ -123,12 +126,10 @@ M.item = function (item, sprite)
         y_sort = true,
         item = clone(item),
         pos = vec2(),
-        off = -vec2(16, 16),
-        alt = 0,
         shape = {
             tag = 'area',
-            pos = vec2(-16, -16),
-            size = vec2(32, 32),
+            pos = vec2(-8, -8),
+            size = vec2(16, 16),
             debug = true,
         },
         sprite = sprite

@@ -26,7 +26,8 @@ local animation_idx = 1
 return {
     load = function ()
         player = api.actor.add(actors.player(1))
-        player.alt = nil
+        player.cam_follow = nil
+        api.actor.add_to_inventory(player, sword.item())
     end,
 
     update = function (dt)

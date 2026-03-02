@@ -17,6 +17,7 @@ local animation = require 'animation'
 local tick = require 'lib.tick'
 local api = require 'api'
 local status_effects = require 'status_effects'
+local audio = require 'audio'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
 -- push.setupScreen(800, 600, {upscale="normal"})
@@ -33,6 +34,7 @@ function love.load()
         display=game.DISPLAY,
         fullscreen=game.FULLSCREEN,
     })
+    audio.load()
     state = require(game.STATE)
     if state.load then
         state.load()

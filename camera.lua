@@ -30,14 +30,14 @@ local update_xform = function (id)
     local ww, wh = shove.getViewportDimensions()
 
     local pos = M.pos[id]
-    if not M.pos[id] then
-        M.pos[id] = vec2()
-        pos = M.pos[id]
+    if not pos then
+        pos = vec2(0, 0)
+        M.pos[id] = pos
     end
     local scale = M.scale[id]
-    if not M.scale[id] then
-        M.scale[id] = vec2()
-        scale = M.scale[id]
+    if not scale then
+        scale = vec2(1, 1)
+        M.scale[id] = scale
     end
 
     xform:translate(ww/2, wh/2)
@@ -59,6 +59,17 @@ M.set_pos = function (x, y, id)
     end
     pos:set(x, y)
     M.pos[id] = pos
+end
+
+---@param id? string
+M.get_pos = function (id)
+    id = id or M.DEFAULT_ID
+    local pos = M.pos[id]
+    if not pos then
+        pos = vec2()
+    end
+    M.pos[id] = pos
+    return pos
 end
 
 ---@param x number
@@ -98,6 +109,15 @@ end
 M.to_screen = function(x, y, id)
     update_xform(id)
     return xform:transformPoint(x, y)
+end
+
+---@param id? string
+M.get_bbox = function (id)
+    update_xform(id)
+    local ww, wh = shove.getViewportDimensions()
+    local l, t = M.to_world(0, 0)
+    local r, b = M.to_world(ww, wh)
+    return l, t, r, b
 end
 
 ---@param x number

@@ -2,6 +2,7 @@ local M = {}
 
 local hands = require 'render.hands'
 local assets = require 'assets'
+local math2 = require 'lib.math2'
 
 local rad = math.rad
 
@@ -21,41 +22,133 @@ M.hand_idle = function ()
     }
 end
 
----@param duration number
-M.hand_swing_up = function (duration)
-    ---@type AnimationStep
+---@param a Actor
+M.hand_swing_up = function (a)
+    ---@type TimelineStep[]
     return {
-        duration = duration,
-        ease = -5,
-        wait = true,
-        target = {
-            dist = 8,
-            animated_arm_r = -math.rad(40+90),
-            sprite = {
-                r = math.rad(0),
+        {
+            name = 'hand_swing_up',
+            subject = a.hands.right,
+            steps = {
+                -- arm lower
+                {
+                    duration = 0,
+                    wait = true,
+                    target = {
+                        dist = 6,
+                        animated_arm_r = -math.rad(5),
+                        sprite = {
+                            r = math.rad(180+45),
+                        },
+                        layer = hands.LAYER.front_2,
+                        item_layer = hands.LAYER.front_1,
+                    },
+                },
+                -- arm start swing up
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_OUT,
+                    wait = true,
+                    target = {
+                        animated_arm_r = -math.rad(15),
+                        sprite = {
+                            r = math.rad(180+35),
+                        },
+                    },
+                },
+                -- instant swing up
+                {
+                    duration = 0,
+                    wait = true,
+                    target = {
+                        dist = 8,
+                        animated_arm_r = -math.rad(40+80),
+                        sprite = {
+                            r = math.rad(10),
+                        },
+                        layer = hands.LAYER.back_1,
+                        item_layer = hands.LAYER.back_2,
+                    },
+                },
+                -- 'recoil'
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_IN,
+                    wait = true,
+                    target = {
+                        animated_arm_r = -math.rad(40+90),
+                        sprite = {
+                            r = math.rad(0),
+                        },
+                    },
+                },
             },
-            layer = hands.LAYER.back_1,
-            item_layer = hands.LAYER.back_2
-        },
+        }
     }
 end
 
----@param duration number
-M.hand_swing_down = function (duration)
-    ---@type AnimationStep
+---@param a Actor
+M.hand_swing_down = function (a)
+    ---@type TimelineStep[]
     return {
-        duration = duration,
-        ease = -5,
-        wait = true,
-        target = {
-            dist = 6,
-            animated_arm_r = -math.rad(5),
-            sprite = {
-                r = math.rad(180+45),
-            },
-            layer = hands.LAYER.front_2,
-            item_layer = hands.LAYER.front_1,
-        },
+        {
+            name = 'hand_swing_down',
+            subject = a.hands.right,
+            steps = {
+                -- arm raise
+                {
+                    duration = 0,
+                    wait = true,
+                    target = {
+                        dist = 8,
+                        animated_arm_r = -math.rad(40+90),
+                        sprite = {
+                            r = math.rad(0),
+                        },
+                        layer = hands.LAYER.back_1,
+                        item_layer = hands.LAYER.back_2,
+                    },
+                },
+                -- arm start swing down
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_OUT,
+                    wait = true,
+                    target = {
+                        animated_arm_r = -math.rad(40+80),
+                        sprite = {
+                            r = math.rad(10),
+                        },
+                    },
+                },
+                -- instant swing down
+                {
+                    duration = 0,
+                    wait = true,
+                    target = {
+                        animated_arm_r = -math.rad(15),
+                        sprite = {
+                            r = math.rad(180+35),
+                        },
+                        layer = hands.LAYER.front_2,
+                        item_layer = hands.LAYER.front_1,
+                    },
+                },
+                -- 'recoil'
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_IN,
+                    wait = true,
+                    target = {
+                        dist = 6,
+                        animated_arm_r = -math.rad(5),
+                        sprite = {
+                            r = math.rad(180+45),
+                        },
+                    },
+                },
+            }
+        }
     }
 end
 

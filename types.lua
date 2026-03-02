@@ -42,6 +42,10 @@
 ---@field last_seen? string actor id
 ---@field path? Vector.lua[]
 
+---@class CameraFollow
+---@field move_dir_offset? boolean
+---@field aim_dir_offset? boolean
+
 ---@alias Group 'entity'|'level_cell'|'player'|'item'
 
 ---@alias Faction 'human'|'wild_aggro'
@@ -50,18 +54,19 @@
 ---@field name? string
 ---@field id? string
 ---@field delta_mod? number [1, 0]
+---@field _delta_mod? number
 ---@field group? Group must be set before calling add_actor
 ---@field owner? string id
 ---@field player? number
 ---@field z? number draw order
 ---@field y_sort? boolean `z` is treated as offset
 ---@field pos? Vector.lua
----@field off? Vector.lua render offset
 ---@field scale? Vector.lua render scale
 ---@field alpha? number [0,1] opacity
 ---@field vel? Vector.lua
 ---@field aim_position? Vector.lua
 ---@field aim_dir? Vector.lua
+---@field disable_aim? boolean
 ---@field move_dir? Vector.lua
 ---@field stunned? boolean
 ---@field alt? number altitude/elevation
@@ -90,3 +95,5 @@
 ---@field hates? Faction[]
 ---@field breadcrumbs? {capacity:number, cd:number, points:Vector.lua} throttled position history
 ---@field status_effects? table<string, number> {name:time_left}
+---@field cam_follow? CameraFollow
+---@field remove_after? number remove this actor from game after x seconds

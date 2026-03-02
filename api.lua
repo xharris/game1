@@ -11,6 +11,7 @@ local light = require 'light'
 local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
 local filters = require 'actor_filters'
+local audio = require 'audio'
 
 local render_level_tile = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
@@ -149,7 +150,19 @@ local use_cd = function (name, cd)
     return false
 end
 
-local actor_light = {}
+---@param a Actor
+local remove_actor = function (a)
+    world:remove(a)
+    remove(game.actors, a)
+    -- remove from group
+    if a.group and actor_groups[a.group] then
+        remove(actor_groups[a.group], a)
+    end
+    -- remove from faction
+    if a.faction and actor_factions[a.faction] then
+        remove(actor_factions[a.faction], a)
+    end
+end
 
 ---@param a Actor
 local add_actor = function (a)
@@ -190,8 +203,18 @@ local add_actor = function (a)
         end
         lume.push(actor_factions[a.faction], a)
     end
-    if not a.alt and #game.levels > 0 then
-        _, a.alt = game.levels[#game.levels].alt
+    -- set alt
+    if not a.alt then
+        if #game.levels > 0 then
+            a.alt = game.levels[#game.levels].alt
+        else
+            a.alt = 0
+        end
+    end
+    if a.remove_after then
+        tick.delay(function ()
+            remove_actor(a)
+        end, a.remove_after)
     end
     return a
 end
@@ -199,6 +222,10 @@ end
 ---@param a Actor
 ---@param immediate? boolean
 local camera_follow = function (a, immediate)
+    local cam_follow = a.cam_follow
+    if not cam_follow or not a.pos then
+        return
+    end
     if immediate then
         camera.position_smoothing = nil
     end
@@ -206,10 +233,10 @@ local camera_follow = function (a, immediate)
     if a.alt then
         pos.y = pos.y - a.alt
     end
-    if a.move_dir and a.max_move_speed then
+    if cam_follow.move_dir_offset and a.move_dir and a.max_move_speed then
         pos = pos + (a.move_dir * (a.max_move_speed / 2))
     end
-    if a.aim_dir then
+    if cam_follow.aim_dir_offset and a.aim_dir then
         pos = pos + (a.aim_dir * 30)
     end
     camera.set_pos(pos.x, pos.y)
@@ -241,29 +268,12 @@ local place_at_level_tile = function (tiles, a, idx)
         a.pos = tile.pos + offset
         a.alt = tile.alt
         a.alt_v = 0
-        if a.player then
-            camera_follow(a, true)
-        end
+        camera_follow(a, true)
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
     else
         log.warn("no start tile found", a)
     end
 end
-
----@param a Actor
-local remove_actor = function (a)
-    world:remove(a)
-    remove(game.actors, a)
-    -- remove from group
-    if a.group and actor_groups[a.group] then
-        remove(actor_groups[a.group], a)
-    end
-    -- remove from faction
-    if a.faction and actor_factions[a.faction] then
-        remove(actor_factions[a.faction], a)
-    end
-end
-
 
 ---@class ItemModule
 ---@field item fun():Item
@@ -334,6 +344,7 @@ end
 ---@param a Actor
 ---@param item Actor
 local pick_up_item = function(a, item)
+    log.debug('pick up item')
     if use_cd(key('pick_up_item', a.id), 2) and add_to_inventory(a, item.item) then
         remove_actor(item)
         return true
@@ -372,7 +383,8 @@ end
 ---@param b Actor
 ---@param threshold? number if provided, allows a.alt to be within `threshold` above b.alt
 local is_same_alt = function (a, b, threshold)
-    if not (a.alt and b.alt) then return false end
+    if not a.alt and not b.alt then return true end
+    if (a.alt == nil) ~= (b.alt == nil) then return false end
     if threshold then
         return a.alt >= b.alt and a.alt - b.alt <= threshold
     end
@@ -397,6 +409,11 @@ local world_filter = function (item, other)
 
     if item_tag == 'hit' and other_tag == 'body' and item.owner == other.id then
         -- cant hit self
+        return false
+    end
+
+    if item_tag == 'hit' and other_tag == 'hit' and item.owner == other.owner then
+        -- cant hit related hitboxes
         return false
     end
 
@@ -469,6 +486,8 @@ local enter_level = function (level_idx, a, cell_filters)
             a.start_cell[level_idx] = filters.randomchoice(cells, 
                 cell_filters or { filters.cell_of_type(TILE.entrance) }).level_cell.index
             place = true
+            -- set audio effects for level theme
+            audio.set_global_effects{'theme_'..level.theme}
         end
         if a.item then
             a.start_cell[level_idx] = filters.randomchoice(cells, 
@@ -765,7 +784,7 @@ local draw_actor = function (a, alt)
     local pop = transform(
         a.pos.x, a.pos.y - alt,
         0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
-        a.off and a.off.x or 0, a.off and a.off.y or 0
+        0, 0
     )
     setColor(1,1,1,a.alpha or 1)
     for _, renderer in ipairs(renderers) do
@@ -796,21 +815,22 @@ local draw_actor = function (a, alt)
     if game.DRAW_AIM_POSITION and a.aim_dir then
         pop = transform(a.pos.x + a.aim_dir.x * 30, a.pos.y - alt + a.aim_dir.y * 30,
             0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
-            a.off and a.off.x or 0, a.off and a.off.y or 0)
+            0, 0)
         setColor(0,0,0.8,1)
         circle('fill', 0, 0, 8)
         pop()
     end
 end
 
-local aim_dir = {}
-
 local update = function (dt)
+    love.audio.setVolume(game.VOLUME.global)
+
     local need_sort = false
     for _, a in ipairs(game.actors) do
-        if a.delta_mod then
-            dt = dt * a.delta_mod
-        end
+        local delta_mod = a._delta_mod or 1
+        a._delta_mod = blend(delta_mod, a.delta_mod or 1, 0.5)
+
+        dt = dt * delta_mod
         if a.player and a.pos then
             -- set camera position
             local pos = a.pos
@@ -820,9 +840,8 @@ local update = function (dt)
             if a.aim_dir then
                 pos = pos + (a.aim_dir * 30)
             end
-            camera_follow(a)
-            camera.position_smoothing = game.CAMERA_SMOOTH
         end
+        camera_follow(a)
         if a.move_dir then
             -- movement input
             local movex, movey = a.move_dir.x, a.move_dir.y
@@ -851,12 +870,12 @@ local update = function (dt)
             local wx, wy = camera.to_world(mx, my)
             local aim_pos = vec2(wx, wy)
 
-            if inside then
+            if not a.disable_aim and inside then
                 if not a.aim_position then
                     a.aim_position = aim_pos
                 else
-                    a.aim_position.x = blend(a.aim_position.x, aim_pos.x)
-                    a.aim_position.y = blend(a.aim_position.y, aim_pos.y)
+                    a.aim_position.x = blend(a.aim_position.x, aim_pos.x, dt * 4)
+                    a.aim_position.y = blend(a.aim_position.y, aim_pos.y, dt * 4)
                 end
 
                 local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
@@ -873,7 +892,7 @@ local update = function (dt)
             end
         end
 
-        if not a.aim_dir and a.move_dir and a.move_dir:getmag() > 0 then
+        if not a.disable_aim and not a.aim_dir and a.move_dir and a.move_dir:getmag() > 0 then
             a.aim_dir = a.move_dir:norm()
         end
 
@@ -995,8 +1014,7 @@ local update = function (dt)
             last_z[a.id] = z
             need_sort = true
         end
-        
-        _, a.current_level = get_current_level(a)
+
         -- lighting
         if a.light then
             light.move_light(a, a.pos.x, a.pos.y - (a.alt or 0))
@@ -1107,10 +1125,10 @@ local draw = function ()
         camera.push()
         -- draw actors
         for _, a in ipairs(game.actors) do
-            local _, level_idx = get_current_level(a)
+            local level, level_idx = get_current_level(a)
             ---@type love.Canvas
             local canvas
-            if level_idx > 0 then
+            if not level or level_idx > 0 then
                 canvas = canvases[level_idx]
                 if not canvas then
                     canvas = love.graphics.newCanvas()
@@ -1177,4 +1195,59 @@ return {
             remove = status_effects.remove,
         },
     },
+    audio = {
+        ---@param a Actor
+        ---@param path string
+        play_from_actor = function (a, path)
+            local effects = {}
+            local filter
+
+            -- check if anyone can hear it
+            local in_hearing_range = a.current_level == nil
+            if a.current_level then
+                for _, p in ipairs(get_group('player')) do
+                    if p.current_level == a.current_level then
+                        in_hearing_range = true
+                    end
+                end
+            end
+            if not in_hearing_range then
+                log.debug('not in hearing range', path, 'from', a.name)
+                return
+            end
+
+            -- get actor level theme effect
+            local level = a.current_level and game.levels[a.current_level] or nil
+            if level then
+                lume.push(effects, 'theme_'..level.theme)
+            end
+
+            local src = audio.get_source(path, effects, filter)
+
+            -- adjust volume
+            src:setVolume(game.VOLUME.SFX)
+
+            -- set position relative to camera
+            if src:getChannelCount() == 1 then
+                src:setPosition(a.pos.x, a.pos.y, 0)
+            end
+
+            log.debug('play', path, 'at', a.name, 'pos', {src:getPosition()}, 'effects', effects, 'filter', filter)
+
+            local listen_pos
+            
+            if a.cam_follow and a.pos then
+                listen_pos = a.pos
+            else
+                listen_pos = camera.get_pos()
+            end
+
+            if listen_pos then
+                love.audio.setPosition(listen_pos.x, listen_pos.y, 0)
+            end
+            log.debug('listener at', love.audio.getPosition())
+
+            src:play()
+        end
+    }
 }

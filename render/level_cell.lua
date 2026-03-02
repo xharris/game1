@@ -32,13 +32,15 @@ M.update = function (dt, a, players)
     local alpha = 0
     local min_dist = game.LEVEL_ALT / 2
     for _, p in ipairs(players) do
-        local dist = a.alt - p.alt
-        if dist == 0 then
-            alpha = max(alpha, 1)
-        elseif dist < 0 and abs(dist) <= min_dist then
-            alpha = max(alpha, lerp(1, 0.5, abs(dist) / min_dist))
-        elseif dist < 0 then
-            alpha = max(alpha, 0.5)
+        if p.alt then
+            local dist = a.alt - p.alt
+            if dist == 0 then
+                alpha = max(alpha, 1)
+            elseif dist < 0 and abs(dist) <= min_dist then
+                alpha = max(alpha, lerp(1, 0.5, abs(dist) / min_dist))
+            elseif dist < 0 then
+                alpha = max(alpha, 0.5)
+            end
         end
     end
     a.alpha = alpha

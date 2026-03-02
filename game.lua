@@ -4,14 +4,15 @@ local G = {
     WINDOW_SCALE = 0.5,
     GAME_SCALE = 0.75,
 
-    STATE = 'states.play',
-    -- STATE = 'states.animation_test',
+    -- STATE = 'states.play',
+    STATE = 'states.animation_test',
+    -- STATE = 'states.sound_test',
 
     SEED = 2,
     LOG_GAME_STATE_ON_ERR = false,
 
     DRAW_Z_ORDER = false,
-    DRAW_AIM_POSITION = true,
+    DRAW_AIM_POSITION = false,
 
     CAMERA_ZOOM = 1.5,
     CAMERA_SMOOTH = 0.1,
@@ -43,6 +44,12 @@ local G = {
     PLAYER_ARM_DIST = 8,
     INF_TIME = -100,
     PLAYER_MAX_MOVE_SPEED = 120,
+
+    VOLUME = {
+        global = 0.5,
+        SFX = 1,
+        MUSIC = 0.8,
+    },
 
     ---@type Level[]
     levels = {},

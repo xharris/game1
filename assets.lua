@@ -19,6 +19,8 @@ M.player_frame = {
 
 M.stairs = 'assets/stairs.png'
 
+M.sword_slice = 'assets/dragon-studio-sword-slice.ogg'
+
 -- TODO add _frames/_frame for other sprites
 
 return M

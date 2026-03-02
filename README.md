@@ -1,5 +1,15 @@
 # Game 1: Maze Dungeon
 
+## Info
+
+- Loudness: -16.7 LUFS (tomb raider)
+  - Audacity (Effects > Volume > Normalize loudness)
+
+## Credits
+
+- [Dragon Studio](https://pixabay.com/users/dragon-studio-38165424/)
+- [freesound_community](https://pixabay.com/users/freesound_community-46691455/)
+
 ## Plan
 
 **Goal** exit the maze
@@ -96,10 +106,8 @@
 
 - [x] there is a sword sticking in the ground at least a few blocks away
 - [x] player walks into sword to pick it up
-  - freeze frame with pose
-  - sword sound effect
-  - thick white line move up sword (masked by sprite)
-  - rotating circle cross effect at tip
+  - [x] freeze frame ~~with pose~~
+  - [x] sword sound effect
 
 ### Enemy interactions
 
@@ -137,6 +145,10 @@
 ## After prototyping
 
 - [ ] tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
+- sword equip animation
+  - thick white line move up sword (masked by sword_shine_mask.png?)
+  - expanding circle/shiny cross effect at tip
+- [ ] add smear to sword image to use in swing animation (https://images.squarespace-cdn.com/content/v1/551a19f8e4b0e8322a93850a/1560422875783-WQR4OR11DUMEXPRO9781/17-Sword_Attacks.gif)
 
 ### Goals
 
