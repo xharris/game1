@@ -111,8 +111,13 @@
 
 ### Enemy interactions
 
+- there are enemies near sword
 - nearby slime enemies can be attacked with sword
-- getting hit makes you drop a random item
+- getting hit
+  - screen shake
+  - knockback
+  - short stun (add to `Shape`)
+  - drop a random item
   - flies in random direction
 
 ### Sword item
@@ -127,7 +132,7 @@
 ### Level tile: sub-maze with holes and enemies
 
 - player continues through maze
-- player sees a room missing tiles (can fall through) and has the carefully avoid falling
+- player sees a room missing tiles (can fall through) and has to carefully avoid falling
 - there are enemies spread throughout the tiles
   - slime
   - bat

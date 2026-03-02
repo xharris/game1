@@ -14,6 +14,7 @@
 ---@field tiles cell_type[]
 ---@field width number `tiles` width
 ---@field items string[]
+---@field scenarios string[]
 
 ---@class LevelCell
 ---@field level number which level this belongs to

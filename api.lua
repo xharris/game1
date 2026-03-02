@@ -12,6 +12,7 @@ local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
 local filters = require 'actor_filters'
 local audio = require 'audio'
+local scenarios = require 'scenarios'
 
 local render_level_tile = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
@@ -25,7 +26,6 @@ local remove = lume.remove
 local randomchoice = lume.randomchoice
 local eq = math2.eq
 local floor = math.floor
-local TILE = game.TILE 
 local push = lume.fn(love.graphics.push, 'all')
 local pop = love.graphics.pop
 local clamp = lume.clamp
@@ -281,6 +281,7 @@ end
 ---@field sprite? fun():Sprite
 ---@field equip? fun(a:Actor, item:Item)
 ---@field activate? fun(a:Actor, item:Item, hand?:Hand)
+---@field drop? fun(a:Actor, item:Item) TODO fly in an arc away from player
 
 local load_item = function (name)
     ---@type ItemModule
@@ -476,7 +477,7 @@ local enter_level = function (level_idx, a, cell_filters)
         if a.enemy then
             -- place enemy in random tile
             a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or {filters.cell_of_type(TILE.ground)}
+                cell_filters or {filters.cell_of_type(game.CELL.ground)}
             ).level_cell.index
             
             place = true
@@ -484,14 +485,14 @@ local enter_level = function (level_idx, a, cell_filters)
         if a.player then
             -- place at random entrance
             a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or { filters.cell_of_type(TILE.entrance) }).level_cell.index
+                cell_filters or { filters.cell_of_type(game.CELL.entrance) }).level_cell.index
             place = true
             -- set audio effects for level theme
             audio.set_global_effects{'theme_'..level.theme}
         end
         if a.item then
             a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or {filters.cell_of_type(TILE.ground)}
+                cell_filters or {filters.cell_of_type(game.CELL.ground)}
             ).level_cell.index
             place = true
         end
@@ -579,7 +580,7 @@ local add_level = function (next_level)
                 index = i,
             },
             size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
-            shape = tile ~= TILE.none and {
+            shape = tile ~= game.CELL.none and {
                 tag = 'ground',
                 pos = vec2(0, 0),
                 size = game.LEVEL_CELL_SIZE * game.LEVEL_TILE_SIZE,
@@ -591,58 +592,14 @@ local add_level = function (next_level)
         }
         lume.push(level_tiles, level_tile)
     end
-    -- set exit
-    local tiles = get_level_cells(level_idx)
-    local exits = get_tiles_of_type(tiles, TILE.exit)
-    local exit
-    if #exits > 0 then
-        exit = randomchoice(exits)
-    else
-        exit = randomchoice(get_tiles_of_type(tiles, TILE.entrance))
-    end
-    local exit_tile = tiles[exit]
-    exit_tile.level_cell.type = 3
-    local level_exit = add_actor{
-        name = 'LEVEL_EXIT',
-        pos = exit_tile.pos + (cell_size() / 2),
-        level_exit = randomchoice(game.LEVELS),
-        shape = {
-            tag = 'area',
-            pos = vec2(),
-            size = vec2(32, 32),
-        },
-        sprite = {
-            frame = 1,
-            frames = vec2(1, 1),
-            off = vec2(32, 32),
-            path = assets.stairs,
-        },
-        alt = alt,
-        z = exit_tile.z + 10,
-        y_sort = true,
-    }
-    log.debug('add level exit', level_exit.pos)
 
-    -- put item near entrance
-    local cells = get_level_cells(level_idx)
-    local entrances = filters.apply(cells, {filters.level_cell(level_idx, TILE.entrance)})
-    for _, entrance in ipairs(entrances) do
-        local item_name = randomchoice(next_level.items)
-        if item_name then
-            ---@type ItemModule
-            local item_mod = require('items.'..item_name)
-            local item = add_actor(actors.item(item_mod.item(), item_mod.sprite()))
-            local cell = filters.randomchoice(cells, {
-                filters.level_cell(level_idx, TILE.ground),
-                near_cell_type(entrance, TILE.ground, 4)
-            })
-            if cell then
-                item.pos = cell.pos + (cell_size() / 2)
-                enter_level(level_idx, item, {
-                    filters.level_cell(level_idx, TILE.ground),
-                    near_cell_type(entrance, TILE.ground, 2)
-                })
-            end
+    for _, name in ipairs(next_level.scenarios) do
+        ---@type Scenario?
+        local s = scenarios[name]
+        if s then
+            s(level_idx, next_level)
+        else
+            log.warn('missing scenario', name)
         end
     end
 
@@ -688,7 +645,7 @@ local update_walkable = function (level_idx)
     local cells_y = tile_size.y / step.y
     local walkable = {}
     for _, tile in ipairs(get_group('level_cell')) do
-        if tile.level_cell.level == level_idx and tile.level_cell.type ~= TILE.none then
+        if tile.level_cell.level == level_idx and tile.level_cell.type ~= game.CELL.none then
             local g = to_grid(tile.pos, level_idx)
             for dy = 0, cells_y - 1 do
                 local row = g.y + dy
@@ -1157,6 +1114,9 @@ return {
     update = update,
     draw = draw,
     key = key,
+    filters = {
+        near_cell_type = near_cell_type
+    },
     mouse = {
         world_pos = shove.mouseToViewport,
     },
@@ -1168,8 +1128,10 @@ return {
         enter = enter_level,
         to_grid = to_grid,
         get_cell = get_level_cell,
+        get_cells = get_level_cells,
         cell_size = cell_size,
         get_pos = get_map_pos,
+        get_alt = get_level_alt,
     },
     actor = {
         add = add_actor,

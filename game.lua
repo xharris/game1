@@ -27,8 +27,9 @@ local G = {
         '#8BC34A', -- exit
     },
     LEVEL_ALT = 96,
+
     ---@enum cell_type
-    TILE = {
+    CELL = {
         none = 0,
         ground = 1,
         entrance = 2,
@@ -62,9 +63,10 @@ local G = {
 G.START_LEVEL = {
     name = 'start',
     theme = G.THEME.forest,
-    tiles = {G.TILE.entrance, G.TILE.ground, G.TILE.exit},
+    tiles = {G.CELL.entrance, G.CELL.ground, G.CELL.exit},
     width = 3,
     items = {'sword'},
+    scenarios = {},
 }
 
 ---@type NextLevel[]
@@ -80,7 +82,11 @@ G.LEVELS = {
             1, 1, 1, 0, 1,
         },
         width = 5,
-        items = {'sword'}
+        items = {'sword'},
+        scenarios = {
+            'item_near_entrance',
+            'turn_rand_entrance_into_exit',
+        },
     },
 }
 

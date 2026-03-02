@@ -27,6 +27,7 @@ M.player = function (player)
             aim_dir_offset = true,
             move_dir_offset = true,
         },
+        dmg = 5, -- player should do some damage when colliding with enemies
         shape = {
             tag = 'body',
             pos = vec2(-4, 0),
