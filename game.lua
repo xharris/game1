@@ -4,8 +4,8 @@ local G = {
     WINDOW_SCALE = 0.5,
     GAME_SCALE = 0.75,
 
-    -- STATE = 'states.play',
-    STATE = 'states.animation_test',
+    STATE = 'states.play',
+    -- STATE = 'states.animation_test',
     -- STATE = 'states.sound_test',
 
     SEED = 2,
@@ -66,7 +66,9 @@ G.START_LEVEL = {
     cells = {G.CELL.entrance, G.CELL.ground, G.CELL.exit},
     width = 3,
     items = {'sword'},
-    scenarios = {},
+    scenarios = {
+        'add_exits',
+    },
 }
 
 ---@type NextLevel[]
@@ -85,7 +87,7 @@ G.LEVELS = {
         items = {'sword'},
         scenarios = {
             'item_near_entrance',
-            'turn_rand_entrance_into_exit',
+            'add_exits',
         },
     },
 }

@@ -6,7 +6,8 @@ local M = {}
 
 local ripairs = lume.ripairs
 
-local event = function ()
+---@param name string
+local event = function (name)
     ---@type EvtConnetion[]
     local conns = {}
 
@@ -27,6 +28,7 @@ local event = function ()
         ---@param once? boolean
         connect = function (fn, once)
             if not is_connected[fn] then
+                log.debug('connect', name, 'once?', once)
                 lume.push(conns, {
                     fn = fn,
                     once = once,
@@ -47,16 +49,16 @@ local event = function ()
 end
 
 M.status_effect = {
-    applied = event(), ---@alias EvtStatusEffectApplied fun(a:Actor, name:StatusEffectName)
-    removed = event(), ---@alias EvtStatusEffectRemoved fun(a:Actor, name:StatusEffectName)
+    applied = event('status_effect.applied'), ---@alias EvtStatusEffectApplied fun(a:Actor, name:StatusEffectName)
+    removed = event('status_effect.removed'), ---@alias EvtStatusEffectRemoved fun(a:Actor, name:StatusEffectName)
 }
 
 M.level = {
-    added = event(), ---@alias EvtLevelAdded fun(level_idx:number, level:Level)
+    added = event('level.added'), ---@alias EvtLevelAdded fun(level_idx:number, level:Level, setup:NextLevel)
 }
 
 M.item = {
-    equipped = event(), ---@alias EvtActorItemEquipped fun(a:Actor, item:Item)
+    equipped = event('item.equipped'), ---@alias EvtActorItemEquipped fun(a:Actor, item:Item)
 }
 
 return M

@@ -12,7 +12,6 @@ local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
 local filters = require 'actor_filters'
 local audio = require 'audio'
-local scenarios = require 'scenarios'
 
 local render_level_cell = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
@@ -552,17 +551,7 @@ local add_level = function (next_level)
         lume.push(level_cells, level_cell)
     end
 
-    for _, name in ipairs(next_level.scenarios) do
-        ---@type Scenario?
-        local s = scenarios[name]
-        if s then
-            s(level_idx, next_level)
-        else
-            log.warn('missing scenario', name)
-        end
-    end
-
-    events.level.added.emit(level_idx, level)
+    events.level.added.emit(level_idx, level, next_level)
     return level_idx, level
 end
 

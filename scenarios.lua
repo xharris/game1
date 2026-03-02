@@ -6,8 +6,27 @@ local api = require 'api'
 local filters = require 'actor_filters'
 local actors = require 'actors'
 local assets = require 'assets'
+local events = require 'events'
 
 local randomchoice = lume.randomchoice
+
+---@type EvtLevelAdded
+local level_added = function (level_idx, _, setup)
+    for _, name in ipairs(setup.scenarios) do
+        ---@type Scenario?
+        local s = M[name]
+        if s then
+            log.info('apply scenario', name)
+            s(level_idx, setup)
+        else
+            log.warn('missing scenario', name)
+        end
+    end
+end
+
+M.load = function ()
+    events.level.added.connect(level_added)
+end
 
 ---@type Scenario
 M.item_near_entrance = function (level_idx, level)
@@ -48,20 +67,21 @@ M.item_near_entrance = function (level_idx, level)
 end
 
 ---@type Scenario
-M.turn_rand_entrance_into_exit = function (level_idx, level)
+M.add_exits = function (level_idx, level)
     local tiles = api.level.get_cells(level_idx)
     local exits = filters.apply(tiles, {filters.cell_of_type(game.CELL.exit)})
+    ---@type Actor?
     local exit
     if #exits > 0 then
         exit = randomchoice(exits)
     else
         exit = randomchoice(filters.apply(tiles, {filters.cell_of_type(game.CELL.entrance)}))
     end
-    local exit_tile = tiles[exit]
-    exit_tile.level_cell.type = 3
+    -- turn cell into exit
+    exit.level_cell.type = 3
     local level_exit = api.actor.add{
         name = 'LEVEL_EXIT',
-        pos = exit_tile.pos + (api.level.cell_size() / 2),
+        pos = exit.pos + (api.level.cell_size() / 2),
         level_exit = randomchoice(game.LEVELS),
         shape = {
             tag = 'area',
@@ -75,7 +95,7 @@ M.turn_rand_entrance_into_exit = function (level_idx, level)
             path = assets.stairs,
         },
         alt = api.level.get_alt(level_idx),
-        z = exit_tile.z + 10,
+        z = exit.z + 10,
         y_sort = true,
     }
     log.debug('add level exit', level_exit.pos)
