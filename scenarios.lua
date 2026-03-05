@@ -29,6 +29,26 @@ M.load = function ()
 end
 
 ---@type Scenario
+M.big_tree_at_entrance = function (level_idx, level)
+    local start_cell = api.level.get_cell(level_idx, 1)
+    local cell_size = api.level.cell_size()
+    local big_tree = api.actor.add{
+        name = 'BIG_TREE',
+        z = 58 - 60,
+        y_sort = true,
+        pos = start_cell.pos + (cell_size / 2),
+        sprite = {
+            path = assets.large_tree,
+            frame = 1,
+            frames = vec2(1, 1),
+            off = vec2(32, 60),
+            scale = vec2(3, 3),
+        },
+    }
+    api.level.enter(level_idx, big_tree)
+end
+
+---@type Scenario
 M.item_near_entrance = function (level_idx, level)
     ---@type Actor[]
     local items = {}
@@ -98,7 +118,7 @@ M.add_exits = function (level_idx, level)
         z = exit.z + 10,
         y_sort = true,
     }
-    log.debug('add level exit', level_exit.pos)
+    log.info('spawn level exit', exit.pos, level_exit.pos)
 end
 
 return M

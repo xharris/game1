@@ -391,7 +391,10 @@ function lume.find(t, value)
   return nil
 end
 
-
+---@generic V
+---@param t V[]
+---@param fn fun(v:V):boolean
+---@return V? v, number? idx
 function lume.match(t, fn)
   fn = iteratee(fn)
   local iter = getiter(t)

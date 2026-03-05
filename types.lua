@@ -7,6 +7,7 @@
 ---@field alt number
 ---@field theme level_theme
 ---@field width number
+---@field name string NextLevel.name
 
 ---@class NextLevel
 ---@field name string
@@ -47,6 +48,10 @@
 ---@field move_dir_offset? boolean
 ---@field aim_dir_offset? boolean
 
+---@class Inventory
+---@field items Item[]
+---@field capacity number
+
 ---@alias Group 'entity'|'level_cell'|'player'|'item'
 
 ---@alias Faction 'human'|'wild_aggro'
@@ -82,7 +87,7 @@
 ---@field tile_path? {x:number, y:number}[]
 ---@field start_level? number
 ---@field start_cell? number[] tile index this actor spawned at for each level
----@field inventory? {items:Item[], capacity:number}
+---@field inventory? Inventory
 ---@field item? Item this is an item
 ---@field shape? Shape
 ---@field range? number aim / attacks / projectiles

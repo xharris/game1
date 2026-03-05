@@ -154,6 +154,7 @@
   - thick white line move up sword (masked by sword_shine_mask.png?)
   - expanding circle/shiny cross effect at tip
 - [ ] add smear to sword image to use in swing animation (https://images.squarespace-cdn.com/content/v1/551a19f8e4b0e8322a93850a/1560422875783-WQR4OR11DUMEXPRO9781/17-Sword_Attacks.gif)
+- [ ] culling cause why not
 
 ### Goals
 
@@ -175,9 +176,12 @@
   > make choices about how to navigate the situation to get what they want most while also trying to prevent
   > what they want least.
 
+### Other resources
+
 - lighting/shaders
+  - https://github.com/a13X-B/bitumbra
   - https://www.gamedev.net/tutorials/programming/graphics/dynamic-2d-soft-shadows-r3065/
   - https://frankforce.com/2d-light-mapping/
   - https://blog.frost.kiwi/dual-kawase/
-
-- culling cause why not
+- music
+  - Junkie XL (YT)

@@ -8,7 +8,7 @@
 --
 -- Modified by xhh
 
-
+---@alias log_level "trace"|"debug"|"info"|"warn"|"error"|"fatal"
 
 ---@class Log
 ---@field trace fun(...)
@@ -21,6 +21,7 @@ local log = { _version = "0.1.0" }
 
 log.usecolor = true
 log.outfile = nil
+---@type log_level
 log.level = "trace"
 
 

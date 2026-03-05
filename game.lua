@@ -1,8 +1,11 @@
 local G = {
+    ---@type log_level
+    LOG_LEVEL = 'info',
     DISPLAY = 2,
     FULLSCREEN = false,
     WINDOW_SCALE = 0.5,
     GAME_SCALE = 0.75,
+    SAVE_WRITE_DISABLED = false,
 
     STATE = 'states.play',
     -- STATE = 'states.animation_test',
@@ -67,6 +70,7 @@ G.START_LEVEL = {
     width = 3,
     items = {'sword'},
     scenarios = {
+        'big_tree_at_entrance',
         'add_exits',
     },
 }
@@ -92,4 +96,6 @@ G.LEVELS = {
     },
 }
 
-return G
+return function ()
+    return require 'lib.copy'(G)
+end

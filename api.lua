@@ -279,7 +279,7 @@ local equip_item = function (a, item)
     if item_module.hold_in_hand and a.hands.right then
         a.hands.right.item = item_module.sprite()
     end
-    events.item.equipped.emit(a, item)
+    events.actor.item_equipped.emit(a, item)
 end
 
 ---@param a Actor
@@ -422,7 +422,7 @@ local enter_level = function (level_idx, a, cell_filters)
     local level = game.levels[level_idx]
     local cells = get_level_cells(level_idx)
     if not level or #cells == 0 then
-        log.warn("invalid level", level_idx, "level", level, "cells", #cells)
+        log.warn(a.name, "could not enter level", level_idx, level, "cells", #cells)
         return
     end
     if not a.start_level then
@@ -459,11 +459,16 @@ local enter_level = function (level_idx, a, cell_filters)
         place = true
     end
     if place and a.start_cell[level_idx] then
-        log.debug('place', a.name, 'at', a.start_cell[level_idx])
+        log.info('place', a.name, 'at', a.start_cell[level_idx])
         place_at_level_cell(cells, a, a.start_cell[level_idx])
     end
     
     a.alt = level.alt
+    if a.current_level ~= level_idx then
+        a.current_level = level_idx
+        events.actor.current_level_changed.emit(a)
+    end
+    events.level.entered.emit(level_idx, a)
 end
 
 ---Get Actor's current level based on `alt`
@@ -513,13 +518,14 @@ local add_level = function (next_level)
 
     local level_idx = #game.levels + 1
     local alt = get_level_alt(level_idx)
-    log.debug("add level", level_idx, "alt", alt)
+    log.debug("add level", level_idx, next_level.name, "alt", alt)
     local ox, oy = -floor(width/2), -floor(width/2)
     ---@type Level
     local level = {
         alt = alt,
         theme = theme,
         width = width,
+        name = next_level.name,
     }
     lume.push(game.levels, level)
     -- create level cells
@@ -859,7 +865,7 @@ local update = function (dt)
                     if other.hp <= 0 then
                         if other.player then
                             log.info("player died")
-                            other.pos = cell_pos(other.start_cell) + (game.LEVEL_TILE_SIZE/2)
+                            other.pos = cell_pos(other.start_cell[other.current_level]) + (game.LEVEL_TILE_SIZE/2)
                             world:update(other,
                                 other.pos.x + other.shape.pos.x,
                                 other.pos.y + other.shape.pos.y
@@ -993,6 +999,14 @@ local update = function (dt)
                 table.remove(bc.points, 1)
             end
         end
+        local _, current_level = get_current_level(a)
+        if current_level ~= a.current_level then
+            if a.group ~= 'entity' then
+                log.debug(a.name, 'now in level', current_level)
+            end
+            a.current_level = current_level
+            events.actor.current_level_changed.emit(a)
+        end
     end
 
     if need_sort then
@@ -1094,6 +1108,7 @@ return {
         get_group = get_group,
         draw = draw_actor,
         add_to_inventory = add_to_inventory,
+        equip_item = equip_item,
         pick_up_item = pick_up_item,
         status_effects = {
             apply = status_effects.apply,

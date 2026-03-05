@@ -3,10 +3,11 @@ table.unpack = table.unpack or unpack
 io.stdout:setvbuf("no")
 math.random = love.math.random
 vec2 = require 'lib.vector'
-game = require 'game'
+game = require 'game'()
 love.math.setRandomSeed(game.SEED)
 
 log = require 'lib.log'
+log.level = game.LOG_LEVEL
 lume = require 'lib.lume'
 events = require 'events'
 log.serialize = lume.serialize
@@ -29,7 +30,7 @@ local state
 function love.load()
     game.DISPLAY = math.min(game.DISPLAY, love.window.getDisplayCount())
     local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
-    log.debug('resolution', dw * game.GAME_SCALE, 'x', dh * game.GAME_SCALE)
+    log.info('resolution', dw * game.GAME_SCALE, 'x', dh * game.GAME_SCALE)
     shove.setResolution(dw * game.GAME_SCALE, dh * game.GAME_SCALE, {fitMethod="pixel", scalingFilter="nearest"})
     shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
         display=game.DISPLAY,
