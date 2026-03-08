@@ -218,6 +218,7 @@ end)
 local place_at_level_cell = function (cells, a, idx)
     local cell = cells[idx] or nil
     if cell then
+        log.info('place', a.name, 'at', idx, 'cell_pos', cell.pos.x, cell.pos.y)
         local offset = cell_size() / 2
         if a.item then
             offset = vec2(
@@ -434,7 +435,7 @@ local enter_level = function (level_idx, a, cell_filters)
         a.start_cell = {}
     end
     if not a.start_cell[level_idx] then
-        if a.enemy then
+        if a.group == 'enemy' then
             -- place enemy in random cell
             a.start_cell[level_idx] = filters.randomchoice(cells, 
                 cell_filters or {filters.cell_of_type(game.CELL.ground)}
@@ -442,7 +443,7 @@ local enter_level = function (level_idx, a, cell_filters)
             
             place = true
         end
-        if a.player then
+        if a.group == 'player' then
             -- place at random entrance
             a.start_cell[level_idx] = filters.randomchoice(cells, 
                 cell_filters or { filters.cell_of_type(game.CELL.entrance) }).level_cell.index
@@ -450,7 +451,7 @@ local enter_level = function (level_idx, a, cell_filters)
             -- set audio effects for level theme
             audio.set_global_effects{'theme_'..level.theme}
         end
-        if a.item then
+        if a.group == 'item' then
             a.start_cell[level_idx] = filters.randomchoice(cells, 
                 cell_filters or {filters.cell_of_type(game.CELL.ground)}
             ).level_cell.index
@@ -460,7 +461,6 @@ local enter_level = function (level_idx, a, cell_filters)
         place = true
     end
     if place and a.start_cell[level_idx] then
-        log.info('place', a.name, 'at', a.start_cell[level_idx])
         place_at_level_cell(cells, a, a.start_cell[level_idx])
     end
     
@@ -749,27 +749,27 @@ local update = function (dt)
             if a.aim_dir then
                 pos = pos + (a.aim_dir * 30)
             end
-            
+
             if a.move_dir then
                 -- movement input
                 local movex, movey = a.move_dir.x, a.move_dir.y
                 if a.player then
                     local input = get_input(a.player)
-                    movex, movey = input:get 'move'
+                    local input_movex, input_movey = input:get 'move'
+                    movex, movey = input_movex or 0, input_movey or 0
                 end
                 a.move_dir:set(movex, movey)
 
                 -- apply move_dir
                 a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
             end
-            local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
 
             ---@type Vector.lua?
             local aim_pos
             if input:getActiveDevice() == 'joy' then
                 -- joystick aim direction
                 local wx, wy = input:get 'aim'
-                aim_pos = alt_pos + (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
+                aim_pos = (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
 
             else
                 -- mouse aim direction
@@ -789,7 +789,7 @@ local update = function (dt)
                     a.aim_position.y = blend(a.aim_position.y, aim_pos.y, dt * 4)
                 end
 
-                a.aim_dir = (a.aim_position - alt_pos):norm()
+                a.aim_dir = (a.aim_position):norm()
             end
 
             -- use item
@@ -962,7 +962,7 @@ local update = function (dt)
         end
         local ai = a.ai
         if ai then
-            if a.hates and use_cd(key(a.id, 'chase enemy'), 0.25) then
+            if a.hates and use_cd(key(a.id, 'chase enemy'), 0.5) then
                 -- find a new target
                 ai.path = nil
                 a.move_dir:set(0, 0)
@@ -973,8 +973,9 @@ local update = function (dt)
                         if
                             a.alt and a2.alt and a.alt == a2.alt
                         then
+                            print(a.name, a2.name, 'has line of sight', has_line_of_sight(a, a2.pos))
                             if a.pos:dist(a2.pos) <= ai.vision_radius and has_line_of_sight(a, a2.pos) then
-                                -- path to actor
+                                -- path directly to actor
                                 ai.path = get_pathing(a, a2.pos)
                                 ai.last_seen = a2.id
                                 

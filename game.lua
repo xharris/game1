@@ -5,15 +5,17 @@ local G = {
     FULLSCREEN = false,
     WINDOW_SCALE = 0.5,
     GAME_SCALE = 0.75,
-    SAVE_WRITE_DISABLED = false,
+    SAVE_WRITE_DISABLED = true,
 
     STATE = 'states.play',
     -- STATE = 'states.animation_test',
     -- STATE = 'states.sound_test',
 
     SEED = 2,
-    LOG_GAME_STATE_ON_ERR = false,
 
+    -- debugging
+    LOG_GAME_STATE_ON_ERR = false,
+    LOG_GAME_STATE_ON_QUIT = true,
     DRAW_Z_ORDER = false,
     DRAW_AIM_POSITION = false,
 

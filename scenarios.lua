@@ -82,7 +82,13 @@ M.item_near_entrance = function (level_idx, level)
 
     -- random enemies near items
     for _, item in ipairs(items) do
-        
+        -- add enemy to level
+        local enemy = api.actor.add(actors.slime())
+        api.level.enter(item.current_level, enemy)
+        -- place in same cell as item
+        local cell_size = api.level.cell_size() / 2
+        enemy.pos.x = love.math.random(item.pos.x - cell_size.x + 32, item.pos.x - cell_size.x - 32)
+        enemy.pos.y = love.math.random(item.pos.y - cell_size.y + 32, item.pos.y - cell_size.y - 32)
     end
 end
 

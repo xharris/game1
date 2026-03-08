@@ -92,6 +92,7 @@ M.slime = function ()
     ---@type Actor
     return {
         name = 'SLIME',
+        group = 'enemy',
         z = 10,
         y_sort = true,
         enemy = 'slime',
@@ -129,6 +130,7 @@ end
 M.item = function (item, sprite)
     ---@type Actor
     return {
+        group = 'item',
         name = item.name,
         z = 10,
         y_sort = true,

@@ -185,3 +185,4 @@
   - https://blog.frost.kiwi/dual-kawase/
 - music
   - Junkie XL (YT)
+- smear frames: https://www.reddit.com/r/PixelArt/comments/uyelij/smear_frames_for_a_pixelart_animation/

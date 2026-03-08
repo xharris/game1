@@ -56,7 +56,7 @@
 ---@field amt number [0,1]
 ---@field dir? Vector.lua alternative to `amt`
 
----@alias Group 'entity'|'level_cell'|'player'|'item'
+---@alias Group 'entity'|'level_cell'|'player'|'item'|'enemy'
 
 ---@alias Faction 'human'|'wild_aggro'
 

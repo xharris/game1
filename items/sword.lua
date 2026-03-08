@@ -27,17 +27,11 @@ M.sprite = function ()
         frames = vec2(1, 1),
         off = vec2(32, 44),
         scale = vec2(0.75, 0.75),
-        debug = true,
         points = {
             { x=32, y=18 } -- tip of sword TODO add visuals
         }
     }
 end
-
--- local swing_animations = {
---     {a.hand_swing_down(0), a.hand_swing_up(1)},
---     {a.hand_swing_up(0), a.hand_swing_down(1)},
--- }
 
 M.equip = function (a, item)
     -- play sound

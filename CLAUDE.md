@@ -17,20 +17,20 @@
 
 ### Key Files
 
-| File | Purpose |
-|---|---|
-| `game.lua` | Global constants and mutable state: `TILE`, `LEVEL_ALT=50`, `LEVEL_CELL_SIZE`, `LEVEL_TILE_SIZE`, `game.actors[]`, `game.levels[]`, `LEVELS[]` (level templates) |
-| `types.lua` | LuaLS type annotations: `Actor`, `Level`, `LevelCell`, `Shape`, `Item`, `Ai`, etc. |
-| `api.lua` | Core engine: actor management, bump physics world, level management, z-sort rendering |
-| `actors.lua` | Actor factory functions: `player(n)`, `slime()`, `item()`, `sword()` |
-| `events.lua` | Simple pub/sub: `events.level.added`, `events.status_effect.applied/removed` |
-| `animation.lua` | Tween-based animation timeline system |
-| `animations.lua` | Named animation sequences (sit, stand, hand_idle, etc.) |
-| `status_effects.lua` | Status effect tick/apply/remove logic (e.g. `sleeping`, `stunned`) |
-| `input.lua` | Input abstraction (`input:get 'move'`, `input:down 'primary'`, etc.) |
-| `hitbox.lua` | Debug hitbox rendering |
-| `light.lua` | Dynamic 2D lighting |
-| `camera.lua` | Camera with position smoothing |
+| File                 | Purpose                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `game.lua`           | Global constants and mutable state: `TILE`, `LEVEL_ALT=50`, `LEVEL_CELL_SIZE`, `LEVEL_TILE_SIZE`, `game.actors[]`, `game.levels[]`, `LEVELS[]` (level templates) |
+| `types.lua`          | LuaLS type annotations: `Actor`, `Level`, `LevelCell`, `Shape`, `Item`, `Ai`, etc.                                                                               |
+| `api.lua`            | Core engine: actor management, bump physics world, level management, z-sort rendering                                                                            |
+| `actors.lua`         | Actor factory functions: `player(n)`, `slime()`, `item()`, `sword()`                                                                                             |
+| `events.lua`         | Simple pub/sub: `events.level.added`, `events.status_effect.applied/removed`                                                                                     |
+| `animation.lua`      | Tween-based animation timeline system                                                                                                                            |
+| `animations.lua`     | Named animation sequences (sit, stand, hand_idle, etc.)                                                                                                          |
+| `status_effects.lua` | Status effect tick/apply/remove logic (e.g. `sleeping`, `stunned`)                                                                                               |
+| `input.lua`          | Input abstraction (`input:get 'move'`, `input:down 'primary'`, etc.)                                                                                             |
+| `hitbox.lua`         | Debug hitbox rendering                                                                                                                                           |
+| `light.lua`          | Dynamic 2D lighting                                                                                                                                              |
+| `camera.lua`         | Camera with position smoothing                                                                                                                                   |
 
 ### Directories
 
@@ -38,7 +38,7 @@
 - `render/` — per-component renderers called by `draw_actor`: `sprite.lua`, `hands.lua`, `level_cell.lua`
 - `items/` — item modules loaded by name; each exports `item()`, `sprite()`, and optionally `equip()`, `activate()`
 - `assets/` — image files; paths declared in `assets.lua`
-- `lib/` — third-party libs: `bump` (AABB physics), `tick` (timers/delays), `lume` (utilities), `vector` (vec2), `tween`, `lua-star` (A* pathfinding), `shove` (viewport scaling)
+- `lib/` — third-party libs: `bump` (AABB physics), `tick` (timers/delays), `lume` (utilities), `vector` (vec2), `tween`, `lua-star` (A\* pathfinding), `shove` (viewport scaling)
 
 ### Actor System
 
@@ -56,6 +56,7 @@
 - `TILE`: `none=0`, `ground=1`, `entrance=2`, `exit=3`
 - `enter_level(level_idx, a)` places an actor at a level's entrance tile (first visit only) and sets `a.alt`
 - The level exit actor (stairs sprite) is created in `add_level`; it triggers `enter_level` on collision
+- `alt` should only be used as a visual offset
 
 ### Z-Sorting / Rendering
 
