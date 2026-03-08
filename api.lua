@@ -1,7 +1,7 @@
 local math2 = require 'lib.math2'
 local mui = require 'lib.mui'
 local camera = require 'camera'
-local input = require 'input'
+local get_input = require 'input'
 local assets = require 'assets'
 local bump = require 'lib.bump'
 local luastar = require 'lib.lua-star'
@@ -31,11 +31,12 @@ local clamp = lume.clamp
 local abs = math.abs
 local sign = lume.sign
 local rad = math.rad
-local max = math.max
 local transform = math2.transform
 local circle = love.graphics.circle
 local blend = math2.blend
 local line = love.graphics.line
+local min = math.min
+local max = math.max
 
 local world = bump.newWorld()
 
@@ -738,6 +739,8 @@ local update = function (dt)
 
         dt = dt * delta_mod
         if a.player and a.pos then
+            local input = get_input(a.player)
+
             -- set camera position
             local pos = a.pos
             if a.move_dir then
@@ -746,37 +749,39 @@ local update = function (dt)
             if a.aim_dir then
                 pos = pos + (a.aim_dir * 30)
             end
-        end
-        camera_follow(a)
-        if a.move_dir then
-            -- movement input
-            local movex, movey = a.move_dir.x, a.move_dir.y
-            if a.player then
-                movex, movey = input:get 'move'
-            end
-            a.move_dir:set(movex, movey)
-            -- apply move_dir
-            a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
-        end
-        -- face direction
-        if a.aim_dir and a.aim_dir:getmag() > 0 and a.scale then
-            a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
-        end
-        -- move arm in aim direction if holding an item
-        if a.aim_dir and a.hands and a.hands.right.item then
-            if a.aim_dir.x < 0 then
-                a.hands.right.arm_r = a.aim_dir:heading() + rad(180)
-            else
-                a.hands.right.arm_r = -a.aim_dir:heading()
-            end
-        end
-        if a.player then
-            -- mouse aim direction
-            local inside, mx, my = shove.mouseToViewport()
-            local wx, wy = camera.to_world(mx, my)
-            local aim_pos = vec2(wx, wy)
+            
+            if a.move_dir then
+                -- movement input
+                local movex, movey = a.move_dir.x, a.move_dir.y
+                if a.player then
+                    local input = get_input(a.player)
+                    movex, movey = input:get 'move'
+                end
+                a.move_dir:set(movex, movey)
 
-            if not a.disable_aim and inside then
+                -- apply move_dir
+                a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
+            end
+            local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
+
+            ---@type Vector.lua?
+            local aim_pos
+            if input:getActiveDevice() == 'joy' then
+                -- joystick aim direction
+                local wx, wy = input:get 'aim'
+                aim_pos = alt_pos + (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
+
+            else
+                -- mouse aim direction
+                local inside, mx, my = shove.mouseToViewport()
+                local wx, wy = camera.to_world(mx, my)
+                if inside then
+                    aim_pos = vec2(wx, wy)
+                end
+
+            end
+
+            if not a.disable_aim and aim_pos then
                 if not a.aim_position then
                     a.aim_position = aim_pos
                 else
@@ -784,7 +789,6 @@ local update = function (dt)
                     a.aim_position.y = blend(a.aim_position.y, aim_pos.y, dt * 4)
                 end
 
-                local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
                 a.aim_dir = (a.aim_position - alt_pos):norm()
             end
 
@@ -795,6 +799,37 @@ local update = function (dt)
                 if item_module and input:down 'primary' and use_cd(key('use_item', a.id, item.name), item.cooldown or 1) then
                     item_module.activate(a, item, a.hands and a.hands.right or nil)
                 end
+            end
+
+            -- vibrate
+            local vibe = a.vibration
+            ---@type love.Joystick
+            local joy = love.joystick.getJoysticks()[a.player]
+            if input:getActiveDevice() == 'joy' and joy then
+                local amt = vibe and vibe.amt or 0
+                
+                local l, r = 1, 1
+                if vibe and vibe.dir then
+                    vibe.dir = vibe.dir:norm()
+                    l, r = abs(min(vibe.dir.x, 0)), abs(max(vibe.dir.x, 0))
+                end
+
+                joy:setVibration(l * amt, r * amt)
+            end
+        end
+        camera_follow(a)
+        
+        -- face direction
+        if a.aim_dir and a.aim_dir:getmag() > 0 and a.scale then
+            a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
+        end
+
+        -- move arm in aim direction if holding an item
+        if a.aim_dir and a.hands and a.hands.right.item then
+            if a.aim_dir.x < 0 then
+                a.hands.right.arm_r = a.aim_dir:heading() + rad(180)
+            else
+                a.hands.right.arm_r = -a.aim_dir:heading()
             end
         end
 

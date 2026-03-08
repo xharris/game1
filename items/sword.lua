@@ -20,12 +20,17 @@ M.item = function ()
 end
 
 M.sprite = function ()
+    ---@type Sprite
     return {
         path = assets.sword,
         frame = 1,
         frames = vec2(1, 1),
-        off = vec2(17, 26),
+        off = vec2(32, 44),
         scale = vec2(0.75, 0.75),
+        debug = true,
+        points = {
+            { x=32, y=18 } -- tip of sword TODO add visuals
+        }
     }
 end
 
@@ -89,7 +94,7 @@ M.activate = function (a, item, hand)
                 h.dmg = 10
                 h.shape.knockback = 500
                 h.shape.cd = 5
-                h.shape.debug = true
+                h.shape.debug = false
                 h.remove_after = 0.2
                 api.actor.add(h)
             end
@@ -110,7 +115,7 @@ M.activate = function (a, item, hand)
                 h.dmg = 5
                 h.shape.knockback = 300
                 h.shape.cd = 5
-                h.shape.debug = true
+                h.shape.debug = false
                 h.remove_after = 0.2
                 api.actor.add(h)
             end

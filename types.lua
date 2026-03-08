@@ -52,6 +52,10 @@
 ---@field items Item[]
 ---@field capacity number
 
+---@class Vibration
+---@field amt number [0,1]
+---@field dir? Vector.lua alternative to `amt`
+
 ---@alias Group 'entity'|'level_cell'|'player'|'item'
 
 ---@alias Faction 'human'|'wild_aggro'
@@ -103,3 +107,4 @@
 ---@field status_effects? table<string, number> {name:time_left}
 ---@field cam_follow? CameraFollow
 ---@field remove_after? number remove this actor from game after x seconds
+---@field vibration? Vibration

@@ -55,6 +55,12 @@ local G = {
         MUSIC = 0.8,
     },
 
+    VIBRATE = {
+        sm = 0.05,
+        md = 0.5,
+        lg = 1.0,
+    },
+
     ---@type Level[]
     levels = {},
 

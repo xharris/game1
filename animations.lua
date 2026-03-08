@@ -46,6 +46,21 @@ M.hand_swing_up = function (a)
                 },
                 -- arm start swing up
                 {
+                    duration = 0,
+                    subject = a.vibration,
+                    target = {
+                        amt = 0,
+                    }
+                },
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_OUT,
+                    subject = a.vibration,
+                    target = {
+                        amt = game.VIBRATE.sm,
+                    }
+                },
+                {
                     duration = 0.2,
                     ease = math2.EASE_OUT,
                     wait = true,
@@ -57,6 +72,13 @@ M.hand_swing_up = function (a)
                     },
                 },
                 -- instant swing up
+                {
+                    duration = 0,
+                    subject = a.vibration,
+                    target = {
+                        amt = game.VIBRATE.md,
+                    }
+                },
                 {
                     duration = 0,
                     wait = true,
@@ -71,6 +93,13 @@ M.hand_swing_up = function (a)
                     },
                 },
                 -- 'recoil'
+                {
+                    duration = 0.2,
+                    subject = a.vibration,
+                    target = {
+                        amt = 0,
+                    }
+                },
                 {
                     duration = 0.2,
                     ease = math2.EASE_IN,
@@ -111,6 +140,21 @@ M.hand_swing_down = function (a)
                 },
                 -- arm start swing down
                 {
+                    duration = 0,
+                    subject = a.vibration,
+                    target = {
+                        amt = 0,
+                    }
+                },
+                {
+                    duration = 0.2,
+                    ease = math2.EASE_OUT,
+                    subject = a.vibration,
+                    target = {
+                        amt = game.VIBRATE.sm,
+                    }
+                },
+                {
                     duration = 0.2,
                     ease = math2.EASE_OUT,
                     wait = true,
@@ -124,6 +168,13 @@ M.hand_swing_down = function (a)
                 -- instant swing down
                 {
                     duration = 0,
+                    subject = a.vibration,
+                    target = {
+                        amt = game.VIBRATE.md,
+                    }
+                },
+                {
+                    duration = 0,
                     wait = true,
                     target = {
                         animated_arm_r = -math.rad(15),
@@ -135,6 +186,13 @@ M.hand_swing_down = function (a)
                     },
                 },
                 -- 'recoil'
+                {
+                    duration = 0.2,
+                    subject = a.vibration,
+                    target = {
+                        amt = 0,
+                    }
+                },
                 {
                     duration = 0.2,
                     ease = math2.EASE_IN,

@@ -22,6 +22,9 @@ M.player = function (player)
         mass = 10,
         hp = game.HP,
         alt = 0,
+        vibration = {
+            amt = 0,
+        },
         inventory = {capacity=1, items={}},
         cam_follow = {
             aim_dir_offset = true,
@@ -32,7 +35,7 @@ M.player = function (player)
             tag = 'body',
             pos = vec2(-4, 0),
             size = vec2(8, 8),
-            debug = true,
+            debug = false,
         },
         range = 48,
         light = {
@@ -113,7 +116,11 @@ M.slime = function ()
         },
         faction = 'wild_aggro',
         hates = {'human'},
-        -- tile_path pathing in tile grid
+        sprite = {
+            path = assets.slime,
+            frames = assets.slime_frames,
+            frame = assets.slime_frame.neutral[1],
+        }
     }
 end
 
@@ -131,7 +138,7 @@ M.item = function (item, sprite)
             tag = 'area',
             pos = vec2(-8, -8),
             size = vec2(16, 16),
-            debug = true,
+            debug = false,
         },
         sprite = sprite
     }

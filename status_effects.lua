@@ -1,6 +1,6 @@
 local M = {}
 
-local input = require 'input'
+local get_input = require 'input'
 
 ---@alias StatusEffectName 'sleeping'|'stunned'
 
@@ -8,18 +8,6 @@ local input = require 'input'
 ---@field apply? fun(a:Actor, time_left:number)
 ---@field update? fun(a:Actor, dt:number, time_left:number):number? return new time_left
 ---@field remove? fun(a:Actor)
-
----@param a Actor
-M._key_pressed = function (a, key, scancode, isrepeat)
-    if a.sleeping_strength then
-        if a.sleeping_strength > 0 then
-            a.sleeping_strength = a.sleeping_strength - 10
-            log.debug('sleep str', a.sleeping_strength)
-        else
-            
-        end
-    end
-end
 
 ---@param dt number
 ---@param a Actor
@@ -95,10 +83,22 @@ end
 ---@type table<StatusEffectName, StatusEffect>
 M.effects = {
     sleeping = {
-        apply = function (a, time_left)
+        apply = function (a, _)
             a.sleeping_strength = 50
         end,
-        update = function (a, dt, time_left)
+        update = function (a, dt, _)
+            -- press button to try to wake up
+            local input = get_input(a.player)
+            if a.sleeping_strength and input:pressed 'primary' then
+                if a.sleeping_strength > 0 then
+                    a.sleeping_strength = a.sleeping_strength - 10
+                    log.debug('sleep str', a.sleeping_strength)
+                else
+                    
+                end
+            end
+            
+            -- can't take actions
             if a.vel then
                 a.vel:set(0, 0)
             end
@@ -108,8 +108,12 @@ M.effects = {
             if a.aim_dir then
                 a.aim_dir:set(0, 0)
             end
+
+            -- move towards REM sleep
             local strength = a.sleeping_strength
             strength = strength + 2 * dt
+
+            -- wake up
             if strength <= 0 then
                 -- wake up
                 M.remove(a, 'sleeping')

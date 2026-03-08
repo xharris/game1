@@ -13,7 +13,7 @@ events = require 'events'
 log.serialize = lume.serialize
 
 shove = require 'lib.shove'
-local input = require 'input'
+local get_input = require 'input'
 local animation = require 'animation'
 local tick = require 'lib.tick'
 local api = require 'api'
@@ -45,21 +45,26 @@ function love.load()
 end
 
 function love.update(dt)
-    input:update()
+    for _, a in ipairs(api.actor.get_group('player')) do
+        local input = get_input(a.player)
+        input:update()
+
+        -- toggle fullscreen with [alt/cmd]+enter
+        local is_mac = love.system.getOS() == 'OS X'
+        if a.player == 1 and input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
+            local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
+            shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
+                display=game.DISPLAY,
+                fullscreen=not love.window.getFullscreen(),
+            })
+        end
+    end
     if state and state.update then
         state.update(dt)
     end
     api.update(dt)
     tick.update(dt)
     animation.update(dt)
-    local is_mac = love.system.getOS() == 'OS X'
-    if input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
-        local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
-        shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
-            display=game.DISPLAY,
-            fullscreen=not love.window.getFullscreen(),
-        })
-    end
 end
 
 function love.draw()
@@ -68,12 +73,6 @@ function love.draw()
         state.draw()
     end
     shove.endDraw()
-end
-
-function love.keypressed(...)
-    for _, player in ipairs(api.actor.get_group('player')) do
-        status_effects._key_pressed(player, ...)
-    end
 end
 
 local function error_printer(msg, layer)

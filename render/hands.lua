@@ -58,6 +58,7 @@ M.draw = function (layer, a)
         if item and layer == round(hand.item_layer) then
             local pop_item = transform(0, 0, (hand.sprite.r or rad(0)) + rad(90), 1, 1, 0, 0) -- item_img:getWidth()/2, item_img:getHeight()/2)
             render_sprite.draw_sprite(item)
+            love.graphics.setColor(1, 0, 0)
             pop_item()
         end
         pop_hand()

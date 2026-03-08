@@ -9,10 +9,10 @@ local M = {}
 ---@field scale? Vector.lua
 ---@field off? Vector.lua
 ---@field debug? boolean
+---@field points? { x:number, y:number, tx:number, ty:number }[] get transformed points relative to the rendered sprite
 
 ---@class Actor
 ---@field sprite? Sprite
----@field sprite_rect? {w:number, h:number, fill:boolean, color:string}
 
 local assets = require 'assets'
 local math2 = require 'lib.math2'
@@ -22,6 +22,7 @@ local draw = love.graphics.draw
 local transform = math2.transform
 local set_color = love.graphics.setColor
 local rectangle = love.graphics.rectangle
+local circle = love.graphics.circle
 
 ---@param path string
 ---@param frames_x number
@@ -46,6 +47,11 @@ M.transform = function (sprite)
 end
 
 ---@param sprite Sprite
+M.get_bbox = function (sprite)
+    
+end
+
+---@param sprite Sprite
 M.draw_sprite = function (sprite)
     local pop = M.transform(sprite)
     -- draw image
@@ -57,10 +63,20 @@ M.draw_sprite = function (sprite)
             frame_w, img:getHeight()/sprite.frames.y,
             img:getWidth(), img:getHeight())
         draw(img, quad)
+        if sprite.points then
+            -- update transformed points
+            for _, pt in ipairs(sprite.points) do
+                pt.tx, pt.ty = love.graphics.transformPoint(pt.x, pt.y)
+            end
+        end
         if sprite.debug then
             set_color(lume.color(mui.RED_400))
             local _, _, w, h = quad:getViewport()
             rectangle("line", 0, 0, w, h)
+            -- draw transformed points
+            for _, pt in ipairs(sprite.points) do
+                circle("fill", pt.x, pt.y, 1)
+            end
         end
     end
     pop()

@@ -14,13 +14,19 @@ local math2_ease = math2.ease
 ---@field delay? number
 ---@field target? table<string, any>
 ---@field wait? boolean
+---@field subject? any
 
 ---@class Tween
 ---@field name string
----@field subject Actor
+---@field subject any
 ---@field steps AnimationStep[]
 ---@field tweens fun(dt:number)[]
 ---@field abort? boolean
+
+---@class TimelineStep
+---@field name string
+---@field subject any
+---@field steps AnimationStep[]
 
 --- (3, 0): hard cuts, (2, 0): stylized
 ---@param steps number # of visible poses
@@ -102,7 +108,7 @@ do_next_step = function (twn)
             if step.target then
                 local new_tween = tween.new(
                     step.duration == 0 and 0.0001 or step.duration,
-                    twn.subject,
+                    step.subject or twn.subject,
                     step.target,
                     ease(step.ease or 1)
                     -- steppedEase(step.step, step.snap, step.bias)
@@ -151,11 +157,6 @@ M.animate = function (name, subject, steps)
     do_next_step(twn)
 end
 
----@class TimelineStep
----@field name string
----@field subject any
----@field steps AnimationStep[]
-
 ---@param ... (TimelineStep?)[]
 M.timeline = function (...)
     local subject
@@ -171,6 +172,22 @@ M.timeline = function (...)
             end
         end
     end
+end
+
+---@param ... (TimelineStep?)[]
+M.timeline_duration = function (...)
+    local duration = 0
+    for i = 1, select("#", ...) do
+        for _, tstep in ipairs(select(i, ...)) do
+            ---@cast tstep TimelineStep?
+            if tstep then
+                for _, step in ipairs(tstep.steps) do
+                    duration = duration + step.duration + (step.delay or 0)
+                end
+            end
+        end
+    end
+    return duration
 end
 
 M.update = function (dt)
