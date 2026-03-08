@@ -104,10 +104,14 @@
 
 ### Level tile: sword in ground
 
-- [x] there is a sword sticking in the ground at least a few blocks away
+- [x] there is a sword at least a few blocks away
+  - [ ] ...sticking out of the ground
+  - [ ] change sword scale when not equipped (too small due to not being affected by player transform)
 - [x] player walks into sword to pick it up
   - [x] freeze frame ~~with pose~~
   - [x] sword sound effect
+  - [ ] sparkle at tip
+  - [ ] masked line moving up sword (the sword is rly shiny)
 
 ### Enemy interactions
 

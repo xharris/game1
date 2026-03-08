@@ -636,6 +636,7 @@ local get_pathing = function (a, b)
     local start = to_grid(a.pos, a.current_level)
     local goal = to_grid(b, a.current_level)
 
+    log.debug('map_size', map_size, 'step', step, 'start', start, 'goal', goal)
     local path = luastar:find(
         map_size.x / step.x, map_size.y / step.y,
         start, goal,
@@ -643,11 +644,13 @@ local get_pathing = function (a, b)
         true, true
     )
     if path then
+        local result = {}
         for i, p in ipairs(path) do
             -- convert back to world space (center of cell)
-            path[i] = to_world(p, a.current_level) + step / 2
+            result[i] = to_world(p, a.current_level) + step / 2
         end
-        return path
+        log.debug("path", result)
+        return result
     end
 end
 
@@ -729,6 +732,30 @@ local draw_actor = function (a, alt)
     end
 end
 
+---@param src string recommended: Actor.id
+---@param target Actor
+---@param amt number
+local deal_damage = function (src, target, amt)
+    if target.hp and amt > 0 and use_cd(key('take damage', src, target.id), 3) then
+        target.hp = target.hp - amt
+        if target.hp <= 0 then
+            if target.player then
+                log.info("player died")
+                target.pos = cell_pos(target.start_cell[target.current_level]) + (game.LEVEL_TILE_SIZE/2)
+                world:update(target,
+                    target.pos.x + target.shape.pos.x,
+                    target.pos.y + target.shape.pos.y
+                )
+                target.hp = game.HP
+            end
+            if target.enemy then
+                log.info("enemy died")
+                remove_actor(target)
+            end
+        end
+    end
+end
+
 local update = function (dt)
     love.audio.setVolume(game.VOLUME.global)
 
@@ -752,16 +779,8 @@ local update = function (dt)
 
             if a.move_dir then
                 -- movement input
-                local movex, movey = a.move_dir.x, a.move_dir.y
-                if a.player then
-                    local input = get_input(a.player)
-                    local input_movex, input_movey = input:get 'move'
-                    movex, movey = input_movex or 0, input_movey or 0
-                end
-                a.move_dir:set(movex, movey)
-
-                -- apply move_dir
-                a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
+                local input_movex, input_movey = input:get 'move'
+                a.move_dir:set(input_movex or 0, input_movey or 0)
             end
 
             ---@type Vector.lua?
@@ -818,7 +837,12 @@ local update = function (dt)
             end
         end
         camera_follow(a)
-        
+
+        -- apply move_dir to velocity
+        if a.move_dir then
+            a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
+        end
+
         -- face direction
         if a.aim_dir and a.aim_dir:getmag() > 0 and a.scale then
             a.scale.x = sign(a.aim_dir.x) * abs(a.scale.x)
@@ -895,24 +919,7 @@ local update = function (dt)
                 ---@type Actor
                 local other = col.other
                 -- a deals dmg to other
-                if other.hp and a.dmg and use_cd(key('take damage', a.id, other.id), 3) then
-                    other.hp = other.hp - a.dmg
-                    if other.hp <= 0 then
-                        if other.player then
-                            log.info("player died")
-                            other.pos = cell_pos(other.start_cell[other.current_level]) + (game.LEVEL_TILE_SIZE/2)
-                            world:update(other,
-                                other.pos.x + other.shape.pos.x,
-                                other.pos.y + other.shape.pos.y
-                            )
-                            other.hp = game.HP
-                        end
-                        if other.enemy then
-                            log.info("enemy died")
-                            remove_actor(other)
-                        end
-                    end
-                end
+                deal_damage(a.id, other, a.dmg or 0)
                 -- other deals dmg to a
                 if a.hp and other.dmg and use_cd(key('take damage', other.id, a.id), 3) then
                     a.hp = a.hp - other.dmg
@@ -973,10 +980,9 @@ local update = function (dt)
                         if
                             a.alt and a2.alt and a.alt == a2.alt
                         then
-                            print(a.name, a2.name, 'has line of sight', has_line_of_sight(a, a2.pos))
                             if a.pos:dist(a2.pos) <= ai.vision_radius and has_line_of_sight(a, a2.pos) then
                                 -- path directly to actor
-                                ai.path = get_pathing(a, a2.pos)
+                                ai.path = {a2.pos:clone()}
                                 ai.last_seen = a2.id
                                 
                             elseif
@@ -1022,7 +1028,7 @@ local update = function (dt)
                 a.move_dir = (waypoint - a.pos):norm()
             end
 
-            -- get next waypoint
+            -- close enought to waypoint, get next waypoint
             if waypoint and a.pos:dist(waypoint) < 20 and ai.path and #ai.path > 0 then
                 table.remove(ai.path, 1)
             end
@@ -1150,6 +1156,7 @@ return {
             apply = status_effects.apply,
             remove = status_effects.remove,
         },
+        deal_damage = deal_damage,
     },
     audio = {
         ---@param a Actor

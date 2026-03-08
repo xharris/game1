@@ -15,7 +15,7 @@ local G = {
 
     -- debugging
     LOG_GAME_STATE_ON_ERR = false,
-    LOG_GAME_STATE_ON_QUIT = true,
+    LOG_GAME_STATE_ON_QUIT = false,
     DRAW_Z_ORDER = false,
     DRAW_AIM_POSITION = false,
 

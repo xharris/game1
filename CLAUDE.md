@@ -1,7 +1,7 @@
 - This project uses the following frameworks:
   - [Love2d 11.5](https://love2d.org/wiki/love)
 - The goal and tasks of this project is outlined in `README.md`
-- Logs are printed to `logs.txt`
+- Logs are printed to `logs.txt`. ALWAYS check the logs before fixing anything.
 - Do not implement `TODO` unless explicitly asked to
 - Avoid using `goto`
 
