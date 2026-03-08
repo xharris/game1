@@ -1,5 +1,20 @@
 # Forest level
 
+## Ideas
+
+- traps
+  - poison gas
+    - triggered by pressure plate
+    - fills tile quickly
+    - fills neighboring tile
+    - up to X times
+- hide in a barrel
+- items
+  - sonar: zooms out, shows stuff nearby
+  - backpack: +1 inventory size
+  - portal: teleport to random cell near exit
+- [ ] tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
+
 ## Sequence
 
 ### Intro
@@ -48,6 +63,13 @@
     - pressing attack button while spinning increases duration by 1s and spin faster, reduce mass?
   - hitting something at the tip increases attack speed
     - larger charge spin circle?
+
+#### polish
+
+- equip animation
+  - thick white line move up sword (masked by sword_shine_mask.png?)
+  - expanding circle/shiny cross effect at tip
+  - [ ] add smear to sword image to use in swing animation (https://images.squarespace-cdn.com/content/v1/551a19f8e4b0e8322a93850a/1560422875783-WQR4OR11DUMEXPRO9781/17-Sword_Attacks.gif)
 
 ### Level tile: sub-maze with holes and enemies
 
