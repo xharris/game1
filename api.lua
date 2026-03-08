@@ -82,17 +82,6 @@ local key = lume.memoize(function (...)
     return table.concat(id, '_')
 end)
 
----@param a Actor
----@param c? string color
-local draw_hitbox = function (a, c)
-    if world:hasItem(a) then
-        c = c or mui.GREEN_50
-        local x, y, w, h = world:getRect(a)
-        setColor(color(c))
-        rectangle('line', x, y, w, h)
-    end
-end
-
 local ticks = {}
 
 ---@param name string
@@ -214,11 +203,11 @@ end)
 
 ---@param cells Actor[]
 ---@param a Actor
----@param idx number
-local place_at_level_cell = function (cells, a, idx)
-    local cell = cells[idx] or nil
+---@param cell_idx number
+local place_at_level_cell = function (cells, a, cell_idx)
+    local cell = cells[cell_idx] or nil
     if cell then
-        log.info('place', a.name, 'at', idx, 'cell_pos', cell.pos.x, cell.pos.y)
+        log.info('place', a.name, 'at', cell_idx, 'cell_pos', cell.pos.x, cell.pos.y)
         local offset = cell_size() / 2
         if a.item then
             offset = vec2(
@@ -229,6 +218,12 @@ local place_at_level_cell = function (cells, a, idx)
         a.pos = cell.pos + offset
         a.alt = cell.alt
         a.alt_v = 0
+        if not a.start_cell then
+            a.start_cell = {}
+        end
+        if not a.start_cell[cell.level_cell.level] then
+            a.start_cell[cell.level_cell.level] = cell_idx
+        end
         camera_follow(a, true)
         world:update(a, a.pos.x + a.shape.pos.x, a.pos.y + a.shape.pos.y)
     else
@@ -430,38 +425,34 @@ local enter_level = function (level_idx, a, cell_filters)
     if not a.start_level then
         a.start_level = level_idx
     end
-    local place = false
-    if not a.start_cell then
-        a.start_cell = {}
-    end
-    if not a.start_cell[level_idx] then
+    
+    local start_cell = a.start_cell and a.start_cell[level_idx] or nil
+
+    if not start_cell then
+        -- actor has never been to this level before
+
         if a.group == 'enemy' then
-            -- place enemy in random cell
-            a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or {filters.cell_of_type(game.CELL.ground)}
-            ).level_cell.index
-            
-            place = true
+            cell_filters = cell_filters or {filters.cell_of_type(game.CELL.ground)}
         end
+        
         if a.group == 'player' then
-            -- place at random entrance
-            a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or { filters.cell_of_type(game.CELL.entrance) }).level_cell.index
-            place = true
+            cell_filters = cell_filters or {filters.cell_of_type(game.CELL.entrance)}
             -- set audio effects for level theme
             audio.set_global_effects{'theme_'..level.theme}
         end
+
         if a.group == 'item' then
-            a.start_cell[level_idx] = filters.randomchoice(cells, 
-                cell_filters or {filters.cell_of_type(game.CELL.ground)}
-            ).level_cell.index
-            place = true
+            cell_filters = cell_filters or {filters.cell_of_type(game.CELL.ground)}
         end
-    else
-        place = true
+
+        if cell_filters and #cell_filters > 0 then
+            -- place at random cell with given filters
+            start_cell = filters.randomchoice(cells, cell_filters).level_cell.index
+        end
     end
-    if place and a.start_cell[level_idx] then
-        place_at_level_cell(cells, a, a.start_cell[level_idx])
+
+    if start_cell then
+        place_at_level_cell(cells, a, start_cell)
     end
     
     a.alt = level.alt
@@ -732,27 +723,29 @@ local draw_actor = function (a, alt)
     end
 end
 
----@param src string recommended: Actor.id
 ---@param target Actor
 ---@param amt number
-local deal_damage = function (src, target, amt)
-    if target.hp and amt > 0 and use_cd(key('take damage', src, target.id), 3) then
-        target.hp = target.hp - amt
-        if target.hp <= 0 then
-            if target.player then
-                log.info("player died")
-                target.pos = cell_pos(target.start_cell[target.current_level]) + (game.LEVEL_TILE_SIZE/2)
-                world:update(target,
-                    target.pos.x + target.shape.pos.x,
-                    target.pos.y + target.shape.pos.y
-                )
-                target.hp = game.HP
-            end
-            if target.enemy then
-                log.info("enemy died")
-                remove_actor(target)
-            end
+---@param src? Actor
+local deal_damage = function (target, amt, src)
+    -- apply status effects
+    if target.status_effects then
+        for name in pairs(target.status_effects) do
+            amt = status_effects.effects[name].take_damage(target, amt, src) or amt
         end
+    end
+
+    target.hp = target.hp - amt
+    if target.hp <= 0 then
+        log.info(target.name, "died")
+        if target.group == 'player' then
+            target.pos = cell_pos(target.start_cell[target.current_level]) + (game.LEVEL_TILE_SIZE/2)
+            world:update(target,
+                target.pos.x + target.shape.pos.x,
+                target.pos.y + target.shape.pos.y
+            )
+            target.hp = game.HP
+        end
+        remove_actor(target)
     end
 end
 
@@ -919,16 +912,12 @@ local update = function (dt)
                 ---@type Actor
                 local other = col.other
                 -- a deals dmg to other
-                deal_damage(a.id, other, a.dmg or 0)
+                if other.hp and a.dmg and use_cd(key('take damage', a.id, other.id), 3) then
+                    deal_damage(other, a.dmg or 0, a)
+                end
                 -- other deals dmg to a
                 if a.hp and other.dmg and use_cd(key('take damage', other.id, a.id), 3) then
-                    a.hp = a.hp - other.dmg
-                    if a.hp <= 0 then
-                        if a.enemy then
-                            log.info("enemy died")
-                            remove_actor(a)
-                        end
-                    end
+                    deal_damage(a, other.dmg or 0, other)
                 end
                 -- touch item
                 if a.inventory and other.item then
@@ -969,7 +958,7 @@ local update = function (dt)
         end
         local ai = a.ai
         if ai then
-            if a.hates and use_cd(key(a.id, 'chase enemy'), 0.5) then
+            if a.hates and use_cd(key(a.id, 'chase enemy'), game.CD.chase_enemy) then
                 -- find a new target
                 ai.path = nil
                 a.move_dir:set(0, 0)
@@ -1029,7 +1018,7 @@ local update = function (dt)
             end
 
             -- close enought to waypoint, get next waypoint
-            if waypoint and a.pos:dist(waypoint) < 20 and ai.path and #ai.path > 0 then
+            if waypoint and a.pos:dist(waypoint) < game.MIN_WAYPOINT_DIST and ai.path and #ai.path > 0 then
                 table.remove(ai.path, 1)
             end
 

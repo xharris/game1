@@ -19,8 +19,23 @@ local G = {
     DRAW_Z_ORDER = false,
     DRAW_AIM_POSITION = false,
 
+    -- camera
     CAMERA_ZOOM = 1.5,
     CAMERA_SMOOTH = 0.1,
+
+    DELTA_MOD = {
+        bullet_time = 0.2
+    },
+
+    -- cooldowns
+    CD = {
+        chase_enemy = 0.25,
+    },
+
+    -- ai
+
+    --- minimum distance until the ai moves onto the next waypoint in it's path
+    MIN_WAYPOINT_DIST = 10,
 
     -- big map square section
     LEVEL_CELL_SIZE = vec2(10, 10),
@@ -80,6 +95,7 @@ G.START_LEVEL = {
     scenarios = {
         'big_tree_at_entrance',
         'add_exits',
+        'dummy_at_entrance',
     },
 }
 

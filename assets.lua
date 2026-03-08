@@ -27,6 +27,12 @@ M.slime_frame = {
     angry = {2},
 }
 
+M.dummy = 'assets/dummy2.png'
+M.dummy_frames = vec2(1, 1)
+M.dummy_frame = {
+    idle = {1},
+}
+
 -- audio
 
 M.sword_slice = 'assets/dragon-studio-sword-slice.ogg'

@@ -2,12 +2,13 @@ local M = {}
 
 local get_input = require 'input'
 
----@alias StatusEffectName 'sleeping'|'stunned'
+---@alias StatusEffectName 'sleeping'|'stunned'|'invincible'
 
 ---@class StatusEffect
 ---@field apply? fun(a:Actor, time_left:number)
 ---@field update? fun(a:Actor, dt:number, time_left:number):number? return new time_left
 ---@field remove? fun(a:Actor)
+---@field take_damage? fun(a:Actor, amt:number, src?:Actor):number? return new dmg amt
 
 ---@param dt number
 ---@param a Actor
@@ -82,6 +83,13 @@ end
 
 ---@type table<StatusEffectName, StatusEffect>
 M.effects = {
+    invincible = {
+        take_damage = function (a)
+            log.info(a.name, "is invincible")
+            return 0
+        end
+    },
+
     sleeping = {
         apply = function (a, _)
             a.sleeping_strength = 50

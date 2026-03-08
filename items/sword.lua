@@ -39,7 +39,7 @@ M.equip = function (a, item)
     for _, b in ipairs(game.actors) do
         local b_ref = b
         -- slow everything down for a sec
-        b.delta_mod = 0.2
+        b.delta_mod = game.DELTA_MOD.bullet_time
         tick.delay(function ()
             -- reset
             b_ref.delta_mod = 1

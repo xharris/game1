@@ -115,8 +115,9 @@
 
 ### Enemy interactions
 
-- there are enemies near sword
-- nearby slime enemies can be attacked with sword
+- [x] there is an enemy the near sword
+  - [ ] slime has move_dir cooldown (move, stop, move, stop, etc)
+- [x] nearby slime enemy can be attacked with sword
 - getting hit
   - screen shake
   - knockback

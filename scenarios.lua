@@ -127,4 +127,18 @@ M.add_exits = function (level_idx, level)
     log.info('spawn level exit', exit.pos, level_exit.pos)
 end
 
+---@type Scenario
+M.dummy_at_entrance = function (level_idx, level)
+    local entrances = filters.apply(
+        api.actor.get_group('level_cell'),
+        {filters.level_cell(level_idx, game.CELL.entrance)}
+    )
+    for _, entrance in ipairs(entrances) do
+        local dummy = api.actor.add(actors.training_dummy())
+        api.level.enter(level_idx, dummy)
+        -- place in bottom right
+        dummy.pos = entrance.pos + (api.level.cell_size() * 3/4)
+    end
+end
+
 return M

@@ -58,7 +58,7 @@
 
 ---@alias Group 'entity'|'level_cell'|'player'|'item'|'enemy'
 
----@alias Faction 'human'|'wild_aggro'
+---@alias Faction 'human'|'wild_aggro'|'robot'
 
 ---@class Actor
 ---@field name? string
@@ -104,7 +104,7 @@
 ---@field faction? Faction
 ---@field hates? Faction[]
 ---@field breadcrumbs? {capacity:number, cd:number, points:Vector.lua} throttled position history
----@field status_effects? table<string, number> {name:time_left}
+---@field status_effects? table<StatusEffectName, number> {name:time_left}
 ---@field cam_follow? CameraFollow
 ---@field remove_after? number remove this actor from game after x seconds
 ---@field vibration? Vibration

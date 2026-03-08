@@ -35,7 +35,7 @@ M.player = function (player)
             tag = 'body',
             pos = vec2(-4, 0),
             size = vec2(8, 8),
-            debug = false,
+            debug = true,
         },
         range = 48,
         light = {
@@ -108,12 +108,10 @@ M.slime = function ()
             pos = vec2(-16, 0),
             size = vec2(32, 16),
             knockback = 500,
-            cd = 1,
         },
         ai = {
             vision_radius = 400,
             breadcrumb_radius = 800,
-            chase_for = 2,
         },
         faction = 'wild_aggro',
         hates = {'human'},
@@ -121,6 +119,41 @@ M.slime = function ()
             path = assets.slime,
             frames = assets.slime_frames,
             frame = assets.slime_frame.neutral[1],
+        }
+    }
+end
+
+M.training_dummy = function ()
+    ---@type Actor
+    return {
+        name = 'TRAINING_DUMMY',
+        z = 25 - 16,
+        y_sort = true,
+        pos = vec2(),
+        vel = vec2(),
+        move_dir = vec2(),
+        max_move_speed = 20,
+        mass = 10,
+        map_path = {},
+        shape = {
+            tag = 'body',
+            pos = vec2(-4, 0),
+            size = vec2(8, 8),
+            debug = true,
+            knockback = 500,
+        },
+        ai = {
+            vision_radius = 400,
+            breadcrumb_radius = 800,
+        },
+        faction = 'robot',
+        hates = {'human'},
+        scale = vec2(2, 2),
+        sprite = {
+            path = assets.dummy,
+            frames = assets.dummy_frames,
+            frame = assets.dummy_frame.idle[1],
+            off = vec2(16, 16),
         }
     }
 end
@@ -142,7 +175,10 @@ M.item = function (item, sprite)
             size = vec2(16, 16),
             debug = false,
         },
-        sprite = sprite
+        sprite = sprite,
+        status_effects = {
+            invincible = game.INF_TIME,
+        },
     }
 end
 
