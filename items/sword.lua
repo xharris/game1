@@ -2,7 +2,7 @@
 local M = {}
 
 local assets = require 'assets'
-local animation = require 'animation'
+local timeline = require 'timeline'
 local api = require 'api'
 local tick = require 'lib.tick'
 local hitbox = require 'hitbox'
@@ -70,7 +70,7 @@ M.activate = function (a, item, hand)
         idx = (idx - 1) % #animations + 1
         item._animation_idx = idx
         -- play animation
-        animation.timeline(animations[idx])
+        timeline.run(animations[idx])
     end
 
     -- create hitbox(es) halfway through animation

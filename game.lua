@@ -7,8 +7,8 @@ local G = {
     GAME_SCALE = 0.75,
     SAVE_WRITE_DISABLED = true,
 
-    -- STATE = 'states.play',
-    STATE = 'states.animation_test',
+    STATE = 'states.play',
+    -- STATE = 'states.animation_test',
     -- STATE = 'states.sound_test',
 
     SEED = 2,

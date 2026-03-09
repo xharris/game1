@@ -39,12 +39,11 @@ return {
             lume.hotswap('animations')
             local animations = {
                 a.hand_swing_up(player),
+                a.hand_swing_down(player),
             }
-            -- animation_idx = math2.wrap(animation_idx + 1, 1, #animations+1)
+            animation_idx = math2.wrap(animation_idx + 1, 1, #animations+1)
             log.info('play animation', animation_idx)
             timeline.run(animations[animation_idx])
-            -- animation.timeline(table.unpack(animations[animation_idx]))
-
         end
         if input:down 'move_in' then
             zoom = zoom + dt * 5
