@@ -37,6 +37,7 @@
 ---@field knockback? number [tag=hit] collision knockback strength
 ---@field cd? number cooldown (unused??)
 ---@field debug? boolean
+---@field action? string call EvtActorShapeHit with given action string
 
 ---@class Ai
 ---@field vision_radius number

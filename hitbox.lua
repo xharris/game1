@@ -10,6 +10,7 @@ local rectangle = love.graphics.rectangle
 local lerp = lume.lerp
 
 ---@class Hitbox
+---@field owner? Actor
 ---@field pos Vector.lua
 ---@field vel? Vector.lua
 ---@field size Vector.lua
@@ -66,6 +67,13 @@ M.create = function(h)
                 size = h.size/2,
             }
         }
+        if h.owner then
+            a.alt = h.owner.alt
+            a.owner = h.owner.id
+            if h.owner.vel then
+                a.vel = h.owner.vel:clone()
+            end
+        end
         lume.push(actors, a)
         if h.each then
             h.each(a)

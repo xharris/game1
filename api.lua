@@ -12,6 +12,8 @@ local hitbox = require 'hitbox'
 local status_effects = require 'status_effects'
 local filters = require 'actor_filters'
 local audio = require 'audio'
+local cd = require 'cooldown'
+local weakkeytable = require 'lib.weakkeytable'
 
 local render_level_cell = require 'render.level_cell'
 local render_sprite = require 'render.sprite'
@@ -82,23 +84,6 @@ local key = lume.memoize(function (...)
     return table.concat(id, '_')
 end)
 
-local ticks = {}
-
----@param name string
----@param cd number seconds
-local use_cd = function (name, cd)
-    local timer = ticks[name]
-    if not timer then
-        -- log.debug(name, "on cooldown")
-        ticks[name] = tick.delay(function ()
-            -- log.debug(name, "off cooldown")
-            ticks[name] = nil
-        end, cd)
-        return true
-    end
-    return false
-end
-
 ---@param a Actor
 local remove_actor = function (a)
     world:remove(a)
@@ -113,12 +98,15 @@ local remove_actor = function (a)
     end
 end
 
+local actor_by_id = weakkeytable()
+
 ---@param a Actor
 local add_actor = function (a)
     if not a.id then
         id = id + 1
         a.id = tostring(id)
     end
+    actor_by_id[a.id] = a
     if not a.name then
         a.name = 'ENT#'..tostring(a.id)
     end
@@ -232,8 +220,9 @@ local place_at_level_cell = function (cells, a, cell_idx)
 end
 
 ---@class ItemModule
+---@field name string
 ---@field item fun():Item
----@field hold_in_hand? boolean
+---@field primary_hand? boolean hold in primary hand
 ---@field sprite? fun():Sprite
 ---@field equip? fun(a:Actor, item:Item)
 ---@field activate? fun(a:Actor, item:Item, hand?:Hand)
@@ -273,7 +262,7 @@ local equip_item = function (a, item)
         item_module.equip(a, item)
     end
     -- show in hand?
-    if item_module.hold_in_hand and a.hands.right then
+    if item_module.primary_hand and a.hands.right then
         a.hands.right.item = item_module.sprite()
     end
     events.actor.item_equipped.emit(a, item)
@@ -302,7 +291,7 @@ end
 ---@param item Actor
 local pick_up_item = function(a, item)
     log.debug('pick up item')
-    if use_cd(key('pick_up_item', a.id), 2) and add_to_inventory(a, item.item) then
+    if cd.use(game.CD.pick_up_item, cd.names.pick_up_item, a.id) and add_to_inventory(a, item.item) then
         remove_actor(item)
         return true
     end
@@ -808,7 +797,7 @@ local update = function (dt)
             if a.inventory and #a.inventory.items > 0 then
                 local item = a.inventory.items[1]
                 local item_module = load_item(item.name)
-                if item_module and input:down 'primary' and use_cd(key('use_item', a.id, item.name), item.cooldown or 1) then
+                if item_module and input:down 'primary' and cd.use(item.cooldown or 1, cd.names.use_item, a.id, item.name) then
                     item_module.activate(a, item, a.hands and a.hands.right or nil)
                 end
             end
@@ -912,20 +901,21 @@ local update = function (dt)
                 ---@type Actor
                 local other = col.other
                 -- a deals dmg to other
-                if other.hp and a.dmg and use_cd(key('take damage', a.id, other.id), 3) then
+                if other.hp and a.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, a.id, other.id) then
                     deal_damage(other, a.dmg or 0, a)
                 end
                 -- other deals dmg to a
-                if a.hp and other.dmg and use_cd(key('take damage', other.id, a.id), 3) then
-                    deal_damage(a, other.dmg or 0, other)
-                end
+                -- TODO remove?
+                -- if a.hp and other.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, other.id, a.id) then
+                --     deal_damage(a, other.dmg or 0, other)
+                -- end
                 -- touch item
                 if a.inventory and other.item then
                     pick_up_item(a, other)
                 end
                 -- `a` knocks back `other`
-                if a.shape.knockback and other.vel and use_cd(key(a.id, 'knockback'), 0.5) then
-                    log.debug("knock back", other)
+                if a.shape.knockback and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
+                    log.debug(a.name, "knock back", other.name, a.shape.knockback)
                     local norm = (other.pos - a.pos):norm()
                     other.vel = other.vel + norm * a.shape.knockback
                 end
@@ -939,6 +929,10 @@ local update = function (dt)
                         add_level(level_exit)
                     end
                     enter_level(next_level, a)
+                end
+                if a.shape.action then
+                    log.info("shape action", a.shape.action)
+                    events.actor.shape_hit.emit(a.shape.action, a, other)
                 end
             end
         elseif target then
@@ -958,7 +952,7 @@ local update = function (dt)
         end
         local ai = a.ai
         if ai then
-            if a.hates and use_cd(key(a.id, 'chase enemy'), game.CD.chase_enemy) then
+            if a.hates and cd.use(game.CD.chase_enemy, cd.names.chase_enemy, a.id) then
                 -- find a new target
                 ai.path = nil
                 a.move_dir:set(0, 0)
@@ -1024,7 +1018,7 @@ local update = function (dt)
 
         end
         local bc = a.breadcrumbs
-        if bc and use_cd(key(a.id, 'leave breadcrumb'), bc.cd) then
+        if bc and cd.use(bc.cd, cd.names.leave_breadcrumb, a.id) then
             lume.push(bc.points, a.pos:clone())
             if #bc.points > bc.capacity then
                 table.remove(bc.points, 1)
@@ -1044,7 +1038,7 @@ local update = function (dt)
         table.sort(game.actors, sort_by_z)
     end
 
-    if use_cd(key('update walkable'), 3) then
+    if cd.use(game.CD.update_walkable, cd.names.update_walkable) then
         for i in ipairs(game.levels) do
             update_walkable(i)
         end
@@ -1102,6 +1096,7 @@ return {
     update = update,
     draw = draw,
     key = key,
+    cd = cd,
     filters = {
         near_cell_type = near_cell_type
     },
@@ -1137,6 +1132,11 @@ return {
             end
         end,
         get_group = get_group,
+        ---@param id? string
+        by_id = function (id)
+            ---@type Actor?
+            return id and actor_by_id[id] or nil
+        end,
         draw = draw_actor,
         add_to_inventory = add_to_inventory,
         equip_item = equip_item,

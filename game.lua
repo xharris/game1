@@ -1,6 +1,6 @@
 local G = {
     ---@type log_level
-    LOG_LEVEL = 'info',
+    LOG_LEVEL = 'debug',
     DISPLAY = 2,
     FULLSCREEN = false,
     WINDOW_SCALE = 0.5,
@@ -30,6 +30,10 @@ local G = {
     -- cooldowns
     CD = {
         chase_enemy = 0.25,
+        pick_up_item = 2,
+        take_damage = 3,
+        knockback = 0.5,
+        update_walkable = 3,
     },
 
     -- ai

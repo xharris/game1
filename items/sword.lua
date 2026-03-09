@@ -10,11 +10,12 @@ local anims = require 'animations'
 local assets = require 'assets'
 local math2 = require 'lib.math2'
 
-M.hold_in_hand = true
+M.name = 'SWORD'
+M.primary_hand = true
 
 M.item = function ()
     return {
-        name='SWORD',
+        name=M.name,
         cooldown = 1,
     }
 end
@@ -29,11 +30,20 @@ M.sprite = function ()
         scale = vec2(0.75, 0.75),
         points = {
             { x=32, y=18 } -- tip of sword TODO add visuals
-        }
+        },
     }
 end
 
+---@type EvtActorShapeHit
+local on_actor_shape_hit = function (action, a, other)
+    local owner = api.actor.by_id(a.owner)
+    if action == 'reset_auto_timer' and owner then
+        api.cd.reset(api.cd.names.use_item, owner.id, M.name)
+    end
+end
+
 M.equip = function (a, item)
+    events.actor.shape_hit.connect(on_actor_shape_hit)
     -- play sound
     api.audio.play_from_actor(a, assets.sword_slice)
     for _, b in ipairs(game.actors) do
@@ -63,7 +73,6 @@ M.activate = function (a, item, hand)
     end
 
     -- create hitbox(es) halfway through animation
-    local hitboxes = {}
     tick.delay(function ()
         local aim_angle
         if a.aim_dir.x < 0 then
@@ -74,8 +83,8 @@ M.activate = function (a, item, hand)
 
         -- tipper hitboxes
         hitbox.create{
+            owner = a,
             pos = a.pos + vec2(8, 8),
-            vel = a.vel,
             size = vec2(20, 20),
             radial = {
                 from_angle = aim_angle-math.rad(80),
@@ -84,19 +93,19 @@ M.activate = function (a, item, hand)
                 segments = 10,
             },
             each = function (h)
-                h.owner = a.id
+                h.name = 'sword_tipper'
                 h.dmg = 10
-                h.shape.knockback = 500
-                h.shape.cd = 5
-                h.shape.debug = false
+                h.shape.knockback = 20
+                h.shape.action = 'reset_auto_timer'
+                h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end
         }
         -- create normal hitbox
         hitbox.create{
+            owner = a,
             pos = a.pos + vec2(12, 12),
-            vel = a.vel,
             size = vec2(40, 40),
             radial = {
                 from_angle = aim_angle-math.rad(80),
@@ -105,11 +114,10 @@ M.activate = function (a, item, hand)
                 segments = 10,
             },
             each = function (h)
-                h.owner = a.id
+                h.name = 'sword_normal'
                 h.dmg = 5
-                h.shape.knockback = 300
-                h.shape.cd = 5
-                h.shape.debug = false
+                h.shape.knockback = 200
+                h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end

@@ -1,6 +1,6 @@
 # Forest level
 
-## Ideas
+## Ideas/Polish
 
 - traps
   - poison gas
@@ -14,6 +14,15 @@
   - backpack: +1 inventory size
   - portal: teleport to random cell near exit
 - [ ] tapping a direction quickly (joy)/pressing shift (kbm) gives short dash + decaying move speed
+- improve enemy ai
+  - context based steering
+  - behavior levels
+    - kiting
+    - attack patterns
+- sword equip animation
+  - thick white line move up sword (masked by sword_shine_mask.png?)
+  - expanding circle/shiny cross effect at tip
+  - [ ] add smear to sword image to use in swing animation (https://images.squarespace-cdn.com/content/v1/551a19f8e4b0e8322a93850a/1560422875783-WQR4OR11DUMEXPRO9781/17-Sword_Attacks.gif)
 
 ## Sequence
 
@@ -57,19 +66,7 @@
 
 ### Sword item
 
-- sword
-  - attack to slash in aim_dir, dmgs enemies, knocks back, stuns 0.5, shakes screen
-  - holding attack button charges, release for spin for 1s plus, higher mass (change move_dir slower)
-    - pressing attack button while spinning increases duration by 1s and spin faster, reduce mass?
-  - hitting something at the tip increases attack speed
-    - larger charge spin circle?
-
-#### polish
-
-- equip animation
-  - thick white line move up sword (masked by sword_shine_mask.png?)
-  - expanding circle/shiny cross effect at tip
-  - [ ] add smear to sword image to use in swing animation (https://images.squarespace-cdn.com/content/v1/551a19f8e4b0e8322a93850a/1560422875783-WQR4OR11DUMEXPRO9781/17-Sword_Attacks.gif)
+- see notebook
 
 ### Level tile: sub-maze with holes and enemies
 
