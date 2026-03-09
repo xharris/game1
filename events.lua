@@ -48,6 +48,8 @@ local event = function (name)
     }
 end
 
+M.new = event
+
 M.actor = {
     current_level_changed = event('actor.current_level_changed'), ---@alias EvtActorCurrentLevelChanged fun(a:Actor)
     item_equipped = event('actor.item_equipped'), ---@alias EvtActorItemEquipped fun(a:Actor, item:Item)

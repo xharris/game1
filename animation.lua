@@ -10,11 +10,12 @@ local math2_ease = math2.ease
 
 ---@class AnimationStep
 ---@field ease? number
----@field duration number
+---@field duration? number
 ---@field delay? number
 ---@field target? table<string, any>
 ---@field wait? boolean
 ---@field subject? any
+---@field fn? fun()
 
 ---@class Tween
 ---@field name string
@@ -23,7 +24,7 @@ local math2_ease = math2.ease
 ---@field tweens fun(dt:number)[]
 ---@field abort? boolean
 
----@class TimelineStep
+---@class AnimTimelineStep
 ---@field name string
 ---@field subject any
 ---@field steps AnimationStep[]
@@ -105,9 +106,13 @@ do_next_step = function (twn)
         local create_tween = function ()
             log.debug('do step', twn.name, step.target, step.duration, 'sec')
             is_animating[twn.subject] = (is_animating[twn.subject] or 0) + 1
+            local duration = step.duration or 0
+            if step.fn then
+                step.fn()
+            end
             if step.target then
                 local new_tween = tween.new(
-                    step.duration == 0 and 0.0001 or step.duration,
+                    duration and 0.0001 or duration,
                     step.subject or twn.subject,
                     step.target,
                     ease(step.ease or 1)
@@ -119,7 +124,7 @@ do_next_step = function (twn)
                 local done = false
                 tick.delay(function ()
                     done = true
-                end, step.duration or 0)
+                end, duration)
                 local is_done = function (dt)
                     return done
                 end
@@ -157,12 +162,12 @@ M.animate = function (name, subject, steps)
     do_next_step(twn)
 end
 
----@param ... (TimelineStep?)[]
+---@param ... (AnimTimelineStep?)[]
 M.timeline = function (...)
     local subject
     for i = 1, select("#", ...) do
         for _, step in ipairs(select(i, ...)) do
-            ---@cast step TimelineStep?
+            ---@cast step AnimTimelineStep?
             if step and step.subject then
                 if subject ~= step.subject then
                     subject = step.subject
@@ -174,15 +179,15 @@ M.timeline = function (...)
     end
 end
 
----@param ... (TimelineStep?)[]
+---@param ... (AnimTimelineStep?)[]
 M.timeline_duration = function (...)
     local duration = 0
     for i = 1, select("#", ...) do
         for _, tstep in ipairs(select(i, ...)) do
-            ---@cast tstep TimelineStep?
+            ---@cast tstep AnimTimelineStep?
             if tstep then
                 for _, step in ipairs(tstep.steps) do
-                    duration = duration + step.duration + (step.delay or 0)
+                    duration = duration + (step.duration or 0) + (step.delay or 0)
                 end
             end
         end

@@ -4,6 +4,7 @@ local actors = require 'actors'
 local a = require 'animations'
 local animation = require 'animation'
 local math2 = require 'lib.math2'
+local timeline = require 'timeline'
 
 local sword = require 'items.sword'
 
@@ -37,13 +38,12 @@ return {
             lume.hotswap('items.sword')
             lume.hotswap('animations')
             local animations = {
-                {a.stand(player)},
-                {a.sit(player)},
+                a.hand_swing_up(player),
             }
-            animation_idx = math2.wrap(animation_idx + 1, 1, #animations+1)
+            -- animation_idx = math2.wrap(animation_idx + 1, 1, #animations+1)
             log.info('play animation', animation_idx)
-
-            animation.timeline(table.unpack(animations[animation_idx]))
+            timeline.run(animations[animation_idx])
+            -- animation.timeline(table.unpack(animations[animation_idx]))
 
         end
         if input:down 'move_in' then

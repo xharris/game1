@@ -24,8 +24,9 @@ M.sprite = function ()
     ---@type Sprite
     return {
         path = assets.sword,
-        frame = 1,
-        frames = vec2(1, 1),
+        rows_cols = assets.sword_rows_cols,
+        frames = assets.sword_frames.idle,
+        progress = 0,
         off = vec2(32, 44),
         scale = vec2(0.75, 0.75),
         points = {
@@ -85,7 +86,7 @@ M.activate = function (a, item, hand)
         hitbox.create{
             owner = a,
             pos = a.pos + vec2(8, 8),
-            size = vec2(20, 20),
+            size = vec2(15, 15),
             radial = {
                 from_angle = aim_angle-math.rad(80),
                 to_angle = aim_angle+math.rad(60),
@@ -95,9 +96,9 @@ M.activate = function (a, item, hand)
             each = function (h)
                 h.name = 'sword_tipper'
                 h.dmg = 10
-                h.shape.knockback = 20
+                h.shape.knockback = 80
                 h.shape.action = 'reset_auto_timer'
-                h.shape.debug = true
+                -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end
@@ -117,7 +118,7 @@ M.activate = function (a, item, hand)
                 h.name = 'sword_normal'
                 h.dmg = 5
                 h.shape.knockback = 200
-                h.shape.debug = true
+                -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end

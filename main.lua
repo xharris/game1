@@ -20,6 +20,7 @@ local api = require 'api'
 local status_effects = require 'status_effects'
 local audio = require 'audio'
 local scenarios = require 'scenarios'
+local timeline = require 'timeline'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
 -- push.setupScreen(800, 600, {upscale="normal"})
@@ -65,6 +66,7 @@ function love.update(dt)
     api.update(dt)
     tick.update(dt)
     animation.update(dt)
+    timeline.update(dt)
 end
 
 function love.draw()
@@ -76,10 +78,10 @@ function love.draw()
 end
 
 local function error_printer(msg, layer)
-    lume.serialize_with_quotes = true
 	msg =  (debug.traceback("Error: " .. tostring(msg), 1+(layer or 1)):gsub("\n[^\n]+$", ""))
     if game.LOG_GAME_STATE_ON_ERR then
-        msg = msg .. '\n--- `game` state ---\n' .. lume.serialize(game) .. '\n---\n'
+        lume.serialize_with_quotes = true
+        msg = msg .. ('\n--- `game` state ---\n' .. lume.serialize(game) .. '\n---\n')
     end
     return msg
 end

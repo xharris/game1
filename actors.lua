@@ -35,7 +35,7 @@ M.player = function (player)
             tag = 'body',
             pos = vec2(-4, 0),
             size = vec2(8, 8),
-            debug = true,
+            -- debug = true,
         },
         range = 48,
         light = {
@@ -46,8 +46,9 @@ M.player = function (player)
         breadcrumbs = {capacity=4, cd=0.2, points={}},
         sprite = {
             path = assets.player,
-            frames = assets.player_frames,
-            frame = assets.player_frame.idle[1],
+            rows_cols = assets.player_rows_cols,
+            progress = 0,
+            frames = assets.player_frames.idle,
             off = vec2(16, 16),
         },
         scale = vec2(2, 2),
@@ -60,9 +61,10 @@ M.player = function (player)
                 layer = render_hands.LAYER.front_2,
                 item_layer = render_hands.LAYER.back_2,
                 sprite = {
-                    frame = 1,
-                    frames = vec2(3, 1),
                     path = assets.hand,
+                    rows_cols = vec2(3, 1),
+                    progress = 0,
+                    frames = assets.hand_frames.idle,
                     off = vec2(8, 8),
                     scale = vec2(0.8, 0.8),
                     r = math.rad(0),
@@ -76,9 +78,10 @@ M.player = function (player)
                 layer = render_hands.LAYER.back_1,
                 item_layer = render_hands.LAYER.front_1,
                 sprite = {
-                    frame = 1,
-                    frames = vec2(3, 1),
                     path = assets.hand,
+                    rows_cols = vec2(3, 1),
+                    progress = 0,
+                    frames = assets.hand_frames.idle,
                     off = vec2(8, 8),
                     scale = vec2(0.8, 0.8),
                     r = math.rad(0),
@@ -117,8 +120,9 @@ M.slime = function ()
         hates = {'human'},
         sprite = {
             path = assets.slime,
-            frames = assets.slime_frames,
-            frame = assets.slime_frame.neutral[1],
+            rows_cols = assets.slime_rows_cols,
+            frames = assets.slime_frames.neutral,
+            progress = 0,
         }
     }
 end
@@ -139,7 +143,7 @@ M.training_dummy = function ()
             tag = 'body',
             pos = vec2(-4, 0),
             size = vec2(8, 8),
-            debug = true,
+            -- debug = true,
             knockback = 500,
         },
         ai = {
@@ -151,8 +155,9 @@ M.training_dummy = function ()
         scale = vec2(2, 2),
         sprite = {
             path = assets.dummy,
-            frames = assets.dummy_frames,
-            frame = assets.dummy_frame.idle[1],
+            rows_cols = assets.dummy_rows_cols,
+            frames = assets.dummy_frames.idle,
+            progress = 0,
             off = vec2(16, 16),
         }
     }

@@ -765,12 +765,14 @@ local update = function (dt)
                 a.move_dir:set(input_movex or 0, input_movey or 0)
             end
 
+            local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
+
             ---@type Vector.lua?
             local aim_pos
             if input:getActiveDevice() == 'joy' then
                 -- joystick aim direction
                 local wx, wy = input:get 'aim'
-                aim_pos = (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
+                aim_pos = alt_pos + (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
 
             else
                 -- mouse aim direction
@@ -790,7 +792,7 @@ local update = function (dt)
                     a.aim_position.y = blend(a.aim_position.y, aim_pos.y, dt * 4)
                 end
 
-                a.aim_dir = (a.aim_position):norm()
+                a.aim_dir = (a.aim_position - alt_pos):norm()
             end
 
             -- use item

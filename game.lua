@@ -7,14 +7,14 @@ local G = {
     GAME_SCALE = 0.75,
     SAVE_WRITE_DISABLED = true,
 
-    STATE = 'states.play',
-    -- STATE = 'states.animation_test',
+    -- STATE = 'states.play',
+    STATE = 'states.animation_test',
     -- STATE = 'states.sound_test',
 
     SEED = 2,
 
     -- debugging
-    LOG_GAME_STATE_ON_ERR = false,
+    LOG_GAME_STATE_ON_ERR = true,
     LOG_GAME_STATE_ON_QUIT = false,
     DRAW_Z_ORDER = false,
     DRAW_AIM_POSITION = false,

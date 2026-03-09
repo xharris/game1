@@ -47,3 +47,4 @@
 - music
   - Junkie XL (YT)
 - smear frames: https://www.reddit.com/r/PixelArt/comments/uyelij/smear_frames_for_a_pixelart_animation/
+- tutorials: https://www.reddit.com/user/jasontomlee/

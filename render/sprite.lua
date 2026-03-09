@@ -2,8 +2,10 @@ local M = {}
 
 ---@class Sprite
 ---@field path? string
----@field frames Vector.lua
----@field frame number
+---@field rows_cols Vector.lua
+---@field frames number[] frame indexes
+---@field frame? number 
+---@field progress? number TODO [0, 1] progress in `frames` (0=start, 1=end)
 ---@field pos? Vector.lua will be relative to actor
 ---@field r? number
 ---@field scale? Vector.lua
@@ -23,6 +25,8 @@ local transform = math2.transform
 local set_color = love.graphics.setColor
 local rectangle = love.graphics.rectangle
 local circle = love.graphics.circle
+local floor = math.floor
+local lerp = lume.lerp
 
 ---@param path string
 ---@param frames_x number
@@ -56,11 +60,23 @@ M.draw_sprite = function (sprite)
     local pop = M.transform(sprite)
     -- draw image
     if sprite.path then
-        local img, quad = M.get_objects(sprite.path, sprite.frames.x, sprite.frames.y)
-        local frame_w = img:getWidth()/sprite.frames.x
+        local frame = sprite.frame or 1
+
+        -- progress [0, 1]
+        if sprite.progress then
+            local idx = floor(lerp(1, #sprite.frames, sprite.progress))
+            frame = sprite.frames[idx]
+                
+            if not frame then
+                log.warn('invalid frame', 'idx', idx, 'sprite', sprite)
+            end
+        end
+        
+        local img, quad = M.get_objects(sprite.path, sprite.rows_cols.x, sprite.rows_cols.y)
+        local frame_w = img:getWidth()/sprite.rows_cols.x
         quad:setViewport(
-            frame_w * ((sprite.frame or 1) - 1), 0, 
-            frame_w, img:getHeight()/sprite.frames.y,
+            frame_w * (frame - 1), 0, 
+            frame_w, img:getHeight()/sprite.rows_cols.y,
             img:getWidth(), img:getHeight())
         draw(img, quad)
         if sprite.points then

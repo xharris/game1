@@ -40,7 +40,7 @@ M.big_tree_at_entrance = function (level_idx, level)
         sprite = {
             path = assets.large_tree,
             frame = 1,
-            frames = vec2(1, 1),
+            rows_cols = vec2(1, 1),
             off = vec2(32, 60),
             scale = vec2(3, 3),
         },
@@ -116,7 +116,7 @@ M.add_exits = function (level_idx, level)
         },
         sprite = {
             frame = 1,
-            frames = vec2(1, 1),
+            rows_cols = vec2(1, 1),
             off = vec2(32, 32),
             path = assets.stairs,
         },
