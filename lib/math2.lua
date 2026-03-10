@@ -13,6 +13,7 @@ local weakkeytable = require 'lib.weakkeytable'
 
 local floor = math.floor
 local abs = math.abs
+local lerp = lume.lerp
 
 ---@type Transform
 M.default_xform = {r=0, ox=0, oy=0, sx=0, sy=0, kx=0, ky=0}
@@ -175,6 +176,17 @@ end
 M.blend = function (x, target, blend)
     blend = blend or 0.1
     return x + (target - x) * blend
+end
+
+---@class Curve
+---@field min number
+---@field max number
+
+---@param c Curve
+---@param amt number [0,1]
+---@return number
+M.curve = function (c, amt)
+    return lerp(c.min, c.max, amt)
 end
 
 return M

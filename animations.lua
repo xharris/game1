@@ -41,8 +41,8 @@ M.hand_swing_up = function (a)
         steps = {
             {tick=function (t)
                 -- lower arm
-                right.dist = 6
-                right.animated_arm_r = -rad(45)
+                right.dist = 8
+                right.animated_arm_r = -rad(5)
                 right.sprite.r = rad(180+45)
                 right.layer = hands.LAYER.front_2
                 -- reset item sprite

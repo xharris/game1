@@ -9,12 +9,16 @@ local round = math2.round
 local ease = math2.ease
 local smooth = lume.smooth
 local lerp = lume.lerp
+local noise = love.math.noise
+local get_time = love.timer.getTime
+local curve = math2.curve
 
 ---@class Camera
 ---@field pos Vector.lua
 ---@field target Vector.lua
 ---@field zoom number
----@field shake number [0, 1]
+---@field shake_intensity number [0,1]
+---@field shake_falloff number seconds
 ---@field pos_smooth? number
 
 M.DEFAULT_ID = 'default'
@@ -36,7 +40,8 @@ local get = function (id)
             pos = vec2(),
             target = vec2(),
             zoom = 0,
-            shake = 0,
+            shake_falloff = 1,
+            shake_intensity = 0,
         }
         M.cameras[id] = cam
         table.insert(ids, id)
@@ -58,13 +63,19 @@ local update_xform = function (id)
     cam.pos:set(x, y)
 
     -- screen shake
-    if cam.shake > 0 then
-        local off = vec2(30, 30) * cam.shake
+    if cam.shake_intensity > 0 then
+        local intensity = math2.curve(game.CURVE.camera_shake_intensity, cam.shake_intensity)
+        local range = lerp(1, 3, cam.shake_intensity)
+        local t = get_time() * intensity
+        local off = vec2(
+            range * noise(1, t), --  (noise(1, t) * 2 - 1),
+            range * noise(2, t) --  (noise(2, t) * 2 - 1)
+        )
         x, y = x + off.x, y + off.y
     end
 
     -- zoom
-    local scale = vec2(1, 1) * lerp(1, 3, cam.zoom)
+    local scale = vec2(1, 1) * curve(game.CURVE.camera_zoom, cam.zoom)
 
     xform:translate(ww/2, wh/2)
     xform:scale(scale.x, scale.y)
@@ -78,10 +89,21 @@ M.update = function (dt)
     local cam
     for _, id in pairs(ids) do
         cam = get(id)
-        if cam.shake > 0 then
-            cam.shake = cam.shake - dt * 0.5
+        if cam.shake_intensity > 0 then
+            cam.shake_intensity = cam.shake_intensity - dt * cam.shake_falloff
+        else
+            cam.shake_intensity = 0
         end
     end
+end
+
+---@param intensity? number [0,1]
+---@param falloff? number [0,1]
+---@param id? string camera id
+M.shake = function (intensity, falloff, id)
+    local cam = get(id)
+    cam.shake_intensity = curve(game.CURVE.camera_shake_intensity, intensity or 0)
+    cam.shake_falloff = curve(game.CURVE.camera_shake_falloff, falloff or 1)
 end
 
 ---@param id? string

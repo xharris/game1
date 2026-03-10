@@ -16,6 +16,7 @@
 - traps
 - boss every 3 levels
 - [ ] culling cause why not
+- [ ] add `agi` to determine cd reduction rate?
 
 ### Goals
 

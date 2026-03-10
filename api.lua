@@ -39,6 +39,7 @@ local blend = math2.blend
 local line = love.graphics.line
 local min = math.min
 local max = math.max
+local curve = math2.curve
 
 local world = bump.newWorld()
 
@@ -739,6 +740,19 @@ local deal_damage = function (target, amt, src)
     end
 end
 
+---@param apply_to Actor
+---@param dir Vector.lua
+---@param amt number [0,1]
+local knock_back = function (apply_to, dir, amt)
+    if not apply_to.vel then
+        return
+    end
+    dir = dir:norm()
+    -- apply knockback
+    local vec = dir:norm() * math2.curve(game.CURVE.knockback, amt)
+    apply_to.vel = apply_to.vel + vec
+end
+
 local update = function (dt)
     love.audio.setVolume(game.VOLUME.global)
 
@@ -825,7 +839,7 @@ local update = function (dt)
 
         -- apply move_dir to velocity
         if a.move_dir then
-            a.vel = steer(a.vel, a.move_dir, a.max_move_speed, a.mass or 100, dt)
+            a.vel = steer(a.vel, a.move_dir, a.max_move_speed or 0, a.mass or 100, dt)
         end
 
         -- face direction
@@ -921,16 +935,10 @@ local update = function (dt)
                         pick_up_item(a, other)
                     end
                     -- `a` knocks back `other`
-                    if a.shape.knockback and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
+                    if a.shape.knockback ~= nil and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
                         log.debug(a.name, "knock back", other.name, a.shape.knockback)
-                        local norm = (other.pos - a.pos):norm()
-                        local vec = norm * a.shape.knockback
-                        other.vel = other.vel + vec
-                        
-                        local cam = camera.get()
-                        cam.shake = 1
-
-                        events.actor.knocked_back.emit(a, other, vec)
+                        knock_back(other, other.pos - a.pos, a.shape.knockback)              
+                        camera.shake() -- 0.2, a.shape.knockback)
                     end
                     -- level exit
                     local level_exit = other.level_exit
@@ -1057,6 +1065,8 @@ local update = function (dt)
             update_walkable(i)
         end
     end
+
+    camera.update(dt)
 end
 
 local draw = function ()
@@ -1160,6 +1170,7 @@ return {
             remove = status_effects.remove,
         },
         deal_damage = deal_damage,
+        knock_back = knock_back,
     },
     audio = {
         ---@param a Actor

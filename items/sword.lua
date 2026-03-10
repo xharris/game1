@@ -99,9 +99,9 @@ M.activate = function (a, item, hand)
             each = function (h)
                 h.name = 'sword_tipper'
                 h.dmg = 10
-                h.shape.knockback = 80
+                h.shape.knockback = 0
                 h.shape.action = 'reset_auto_timer'
-                h.shape.cd = {id=cd_id, duration=1}
+                h.shape.cd = {id=cd_id, duration=game.INF_TIME}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
@@ -121,13 +121,15 @@ M.activate = function (a, item, hand)
             each = function (h)
                 h.name = 'sword_normal'
                 h.dmg = 5
-                h.shape.knockback = 200
-                h.shape.cd = {id=cd_id, duration=1}
+                h.shape.knockback = 1
+                h.shape.cd = {id=cd_id, duration=game.INF_TIME}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end
         }
+
+        api.actor.knock_back(a, a.aim_dir, 0)
     end, 0.4)
 end
 

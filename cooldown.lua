@@ -23,6 +23,7 @@ M.names = {
 }
 
 local cd_timers = {}
+local cd_inf = {}
 
 ---@param ... any
 local key = lume.memoize(function (...)
@@ -33,16 +34,21 @@ local key = lume.memoize(function (...)
     return table.concat(id, '_')
 end)
 
+---@param duration number
 ---@param name cooldown_name
 ---@param ... string actor_ids
 M.use = function (duration, name, ...)
     local k = key(name, ...)
     local timer = cd_timers[k]
     if not timer then
-        -- log.debug(duration, "sec <- use", name, ...)
+        if duration == game.INF_TIME then
+            -- never come off cooldown
+            cd_inf[name] = true
+            return true
+        end
         if duration > 0 then
+            -- wait x sec
             cd_timers[k] = tick.delay(function ()
-                -- log.debug(name, "off cooldown")
                 cd_timers[k] = nil
             end, duration)
         end
@@ -51,7 +57,23 @@ M.use = function (duration, name, ...)
     return false
 end
 
-M.set = M.use
+M.set = function (duration, name, ...)
+    local k = key(name, ...)
+    local timer = cd_timers[k]
+    if timer then
+        timer:stop()
+        -- log.debug(duration, "sec <- use", name, ...)
+    end
+    if duration > 0 then
+        cd_timers[k] = tick.delay(function ()
+            -- log.debug(name, "off cooldown")
+            cd_timers[k] = nil
+        end, duration)
+    end
+    if duration == game.INF_TIME then
+        cd_inf[name] = true
+    end
+end
 
 ---@param name string
 ---@param ... string actor_ids
@@ -61,7 +83,12 @@ M.reset = function (name, ...)
     local timer = cd_timers[k]
     if timer then
         timer:stop()
-        cd_timers[k] = nil
+        -- dont fully reset to make things feel more natural, like auto reset
+        M.set(game.CD.reset, name, ...)
+        -- cd_timers[k] = nil
+    end
+    if cd_inf[k] then
+        cd_inf[k] = nil
     end
 end
 

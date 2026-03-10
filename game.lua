@@ -1,7 +1,3 @@
--- TODO 
--- - bug: sword swing hitboxes can hit same enemy multiple times
--- - fix? disable hitbox during hit stun
-
 local G = {
     ---@type log_level
     LOG_LEVEL = 'info',
@@ -26,9 +22,18 @@ local G = {
     -- camera
     CAMERA_ZOOM = 0.25,
     CAMERA_SMOOTH = 0.1,
+    CAMERA_SHAKE_REDUCE_SPEED = 0.5,
 
     DELTA_MOD = {
         bullet_time = 0.2
+    },
+
+    -- curves
+    CURVE = {
+        camera_zoom = {min=1, max=3},
+        camera_shake_falloff = {min=3, max=8},
+        camera_shake_intensity = {min=2, max=20},
+        knockback = {min=80, max=150},
     },
 
     -- cooldowns
@@ -38,6 +43,7 @@ local G = {
         take_damage = 3,
         knockback = 0.5,
         update_walkable = 3,
+        reset = 0.018
     },
 
     -- ai

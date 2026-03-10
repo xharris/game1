@@ -35,7 +35,7 @@
 ---@field pos Vector.lua
 ---@field size Vector.lua
 ---@field disabled? boolean
----@field knockback? number [tag=hit] collision knockback strength
+---@field knockback? number (when tag=hit) [0,1]
 ---@field debug? boolean
 ---@field action? string call EvtActorShapeHit with given action string
 

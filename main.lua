@@ -67,7 +67,6 @@ function love.update(dt)
     tick.update(dt)
     animation.update(dt)
     timeline.update(dt)
-    camera.update(dt)
 end
 
 function love.draw()
