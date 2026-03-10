@@ -84,35 +84,6 @@ M.update = function (dt)
     end
 end
 
----@param x number
----@param y number
----@param id? string
-M.set_pos = function (x, y, id)
-    local cam = get(id)
-    cam.target:set(x, y)
-end
-
----@param id? string
-M.get_pos = function (id)
-    local cam = get(id)
-    return cam.pos
-end
-
----@param x number
----@param y? number
----@param id? string
-M.set_scale = function (x, y, id)
-    local cam = get(id)
-    cam.scale:set(x, y or x)
-end
-
----@param amt number [0, 1]
----@param id? string
-M.shake = function (amt, id)
-    local cam = get(id)
-    cam.shake = amt
-end
-
 ---@param id? string
 M.push = function(id)
     love_push()
