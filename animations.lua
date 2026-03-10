@@ -51,7 +51,7 @@ M.hand_swing_up = function (a)
                 right.item.frames = assets.sword_frames.idle
                 a.vibration.amt = 0
             end},
-            {duration=0.2, tick=function (t)
+            {duration=0.4, tick=function (t)
                 -- arm start slow swing up
                 right.animated_arm_r = lerp(-rad(5), -rad(15), t)
                 right.sprite.r = lerp(rad(180+45), rad(180+35), t)
@@ -104,7 +104,7 @@ M.hand_swing_down = function (a)
                 right.item.frames = assets.sword_frames.idle
                 a.vibration.amt = 0
             end},
-            {duration=0.2, tick=function (t)
+            {duration=0.4, tick=function (t)
                 -- arm start slow swing down
                 right.animated_arm_r = lerp(-math.rad(40+90), -rad(40+80), t)
                 right.sprite.r = lerp(rad(0), rad(10), t)

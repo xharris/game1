@@ -118,7 +118,7 @@ return {
         events.actor.item_equipped.connect(actor_item_equipped)
         events.actor.current_level_changed.connect(actor_current_level_changed)
 
-        api.camera.set_scale(game.CAMERA_ZOOM)
+        api.camera.get().zoom = game.CAMERA_ZOOM
 
         -- add player 
         local player = api.actor.add(actors.player(1))
@@ -141,7 +141,8 @@ return {
     end,
 
     update = function (dt)
-        api.camera.set_scale(game.CAMERA_ZOOM)
+        local cam = api.camera.get()
+        cam.zoom = game.CAMERA_ZOOM
     end,
 
     draw = function ()

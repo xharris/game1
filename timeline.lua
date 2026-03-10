@@ -58,17 +58,17 @@ M.update = function (dt)
             local step = active.steps[1]
             local done = false
             if step.delay and not active.delay_done then
-                log.info("delay", step)
+                log.debug("delay", step)
                 -- wait a sec
                 active.delay_done = false
                 active.delay_timer = tick.delay(function ()
-                    log.info("delay done")
+                    log.debug("delay done")
                     active.delay_timer = nil
                     active.delay_done = true
                 end, step.delay)
             elseif step.duration then
                 if active.dt == 0 then
-                    log.info("do step", step)
+                    log.debug("do step", step)
                 end
                 -- tick for duration
                 active.dt = active.dt + dt
@@ -77,7 +77,7 @@ M.update = function (dt)
                     done = true
                 end
             else
-                log.info("do step now", step)
+                log.debug("do step now", step)
                 -- no duration, run immediately
                 step.tick(1)
                 done = true

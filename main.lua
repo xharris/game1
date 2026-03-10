@@ -13,7 +13,7 @@ events = require 'events'
 log.serialize = lume.serialize
 
 shove = require 'lib.shove'
-local get_input = require 'input'
+local input = require 'input'
 local animation = require 'animation'
 local tick = require 'lib.tick'
 local api = require 'api'
@@ -21,6 +21,7 @@ local status_effects = require 'status_effects'
 local audio = require 'audio'
 local scenarios = require 'scenarios'
 local timeline = require 'timeline'
+local camera = require 'camera'
 
 -- love.window.setMode(1280, 720, {resizable=false, display=2})
 -- push.setupScreen(800, 600, {upscale="normal"})
@@ -46,13 +47,12 @@ function love.load()
 end
 
 function love.update(dt)
+    input.update()
     for _, a in ipairs(api.actor.get_group('player')) do
-        local input = get_input(a.player)
-        input:update()
-
+        local inp = input.get(a.player)
         -- toggle fullscreen with [alt/cmd]+enter
         local is_mac = love.system.getOS() == 'OS X'
-        if a.player == 1 and input:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
+        if a.player == 1 and inp:pressed 'start' and love.keyboard.isDown(is_mac and 'lgui' or 'lalt') then
             local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
             shove.setWindowMode(dw * game.WINDOW_SCALE, dh * game.WINDOW_SCALE, {
                 display=game.DISPLAY,
@@ -67,6 +67,7 @@ function love.update(dt)
     tick.update(dt)
     animation.update(dt)
     timeline.update(dt)
+    camera.update(dt)
 end
 
 function love.draw()

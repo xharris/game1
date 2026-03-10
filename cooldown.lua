@@ -18,6 +18,8 @@ M.names = {
     pick_up_item = 'pick_up_item',
     -- me.id, item.name
     use_item = 'use_item',
+    -- me.id, other.id, shape.cd.id
+    collision = 'collision'
 }
 
 local cd_timers = {}
@@ -54,7 +56,7 @@ M.set = M.use
 ---@param name string
 ---@param ... string actor_ids
 M.reset = function (name, ...)
-    log.info("reset", name, ...)
+    log.debug("reset", name, ...)
     local k = key(name, ...)
     local timer = cd_timers[k]
     if timer then

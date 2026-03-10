@@ -1,6 +1,6 @@
 local M = {}
 
-local get_input = require 'input'
+local input = require 'input'
 
 ---@alias StatusEffectName 'sleeping'|'stunned'|'invincible'
 
@@ -96,8 +96,8 @@ M.effects = {
         end,
         update = function (a, dt, _)
             -- press button to try to wake up
-            local input = get_input(a.player)
-            if a.sleeping_strength and input:pressed 'primary' then
+            local inp = input.get(a.player)
+            if a.sleeping_strength and inp:pressed 'primary' then
                 if a.sleeping_strength > 0 then
                     a.sleeping_strength = a.sleeping_strength - 10
                     log.debug('sleep str', a.sleeping_strength)

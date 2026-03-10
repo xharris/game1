@@ -9,7 +9,8 @@ local line = love.graphics.line
 ---@type State
 return {
     load = function ()
-        api.camera.set_scale(2)
+        local cam = api.camera.get()
+        cam.scale:set(2, 2)
         local player_actor = actors.player(1)
         player_actor.pos:set(-100, 0)
         player_actor.cam_follow = {}

@@ -58,6 +58,7 @@ M.equip = function (a, item)
     end
 end
 
+local i = 0
 M.activate = function (a, item, hand)
     -- play swing animation
     if hand then
@@ -74,7 +75,9 @@ M.activate = function (a, item, hand)
     end
 
     -- create hitbox(es) halfway through animation
+    i = i + 1
     tick.delay(function ()
+        local cd_id = 'sword_swing'..tostring(i)
         local aim_angle
         if a.aim_dir.x < 0 then
             aim_angle = a.aim_dir:heading() + math.rad(20)
@@ -98,6 +101,7 @@ M.activate = function (a, item, hand)
                 h.dmg = 10
                 h.shape.knockback = 80
                 h.shape.action = 'reset_auto_timer'
+                h.shape.cd = {id=cd_id, duration=1}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
@@ -118,12 +122,13 @@ M.activate = function (a, item, hand)
                 h.name = 'sword_normal'
                 h.dmg = 5
                 h.shape.knockback = 200
+                h.shape.cd = {id=cd_id, duration=1}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
                 api.actor.add(h)
             end
         }
-    end, 0.2)
+    end, 0.4)
 end
 
 return M

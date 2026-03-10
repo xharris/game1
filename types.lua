@@ -30,12 +30,12 @@
 ---@alias ShapeTag 'wall'|'body'|'hit'|'area'|'ground'
 
 ---@class Shape
+---@field cd? {id:string, duration:number} when actor is hit by `id`, the collision is placed on cooldown
 ---@field tag ShapeTag
 ---@field pos Vector.lua
 ---@field size Vector.lua
 ---@field disabled? boolean
 ---@field knockback? number [tag=hit] collision knockback strength
----@field cd? number cooldown (unused??)
 ---@field debug? boolean
 ---@field action? string call EvtActorShapeHit with given action string
 

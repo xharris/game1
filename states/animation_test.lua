@@ -46,13 +46,13 @@ return {
             timeline.run(animations[animation_idx])
         end
         if input:down 'move_in' then
-            zoom = zoom + dt * 5
+            zoom = zoom + 0.2 * dt
         end
         if input:down 'move_out' then
-            zoom = zoom - dt * 5
+            zoom = zoom - 0.2 * dt
         end
 
-        api.camera.set_scale(zoom)
+        api.camera.get().zoom = zoom
     end,
 
     draw = function ()

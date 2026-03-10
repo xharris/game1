@@ -1,7 +1,7 @@
 local math2 = require 'lib.math2'
 local mui = require 'lib.mui'
 local camera = require 'camera'
-local get_input = require 'input'
+local input = require 'input'
 local assets = require 'assets'
 local bump = require 'lib.bump'
 local luastar = require 'lib.lua-star'
@@ -163,8 +163,9 @@ local camera_follow = function (a, immediate)
     if not cam_follow or not a.pos then
         return
     end
+    local cam = camera.get()
     if immediate then
-        camera.position_smoothing = nil
+        cam.pos_smooth = nil
     end
     local pos = a.pos:clone()
     if a.alt then
@@ -176,9 +177,9 @@ local camera_follow = function (a, immediate)
     if cam_follow.aim_dir_offset and a.aim_dir then
         pos = pos + (a.aim_dir * 30)
     end
-    camera.set_pos(pos.x, pos.y)
+    cam.target = pos:clone()
     if immediate then
-        camera.position_smoothing = game.CAMERA_SMOOTH
+        cam.pos_smooth = game.CAMERA_SMOOTH
     end
 end
 
@@ -748,7 +749,7 @@ local update = function (dt)
 
         dt = dt * delta_mod
         if a.player and a.pos then
-            local input = get_input(a.player)
+            local inp = input.get(a.player)
 
             -- set camera position
             local pos = a.pos
@@ -761,7 +762,7 @@ local update = function (dt)
 
             if a.move_dir then
                 -- movement input
-                local input_movex, input_movey = input:get 'move'
+                local input_movex, input_movey = inp:get 'move'
                 a.move_dir:set(input_movex or 0, input_movey or 0)
             end
 
@@ -769,9 +770,9 @@ local update = function (dt)
 
             ---@type Vector.lua?
             local aim_pos
-            if input:getActiveDevice() == 'joy' then
+            if inp:getActiveDevice() == 'joy' then
                 -- joystick aim direction
-                local wx, wy = input:get 'aim'
+                local wx, wy = inp:get 'aim'
                 aim_pos = alt_pos + (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
 
             else
@@ -799,7 +800,7 @@ local update = function (dt)
             if a.inventory and #a.inventory.items > 0 then
                 local item = a.inventory.items[1]
                 local item_module = load_item(item.name)
-                if item_module and input:down 'primary' and cd.use(item.cooldown or 1, cd.names.use_item, a.id, item.name) then
+                if item_module and inp:down 'primary' and cd.use(item.cooldown or 1, cd.names.use_item, a.id, item.name) then
                     item_module.activate(a, item, a.hands and a.hands.right or nil)
                 end
             end
@@ -808,7 +809,7 @@ local update = function (dt)
             local vibe = a.vibration
             ---@type love.Joystick
             local joy = love.joystick.getJoysticks()[a.player]
-            if input:getActiveDevice() == 'joy' and joy then
+            if inp:getActiveDevice() == 'joy' and joy then
                 local amt = vibe and vibe.amt or 0
                 
                 local l, r = 1, 1
@@ -902,39 +903,50 @@ local update = function (dt)
                 local col = cols[i]
                 ---@type Actor
                 local other = col.other
-                -- a deals dmg to other
-                if other.hp and a.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, a.id, other.id) then
-                    deal_damage(other, a.dmg or 0, a)
-                end
-                -- other deals dmg to a
-                -- TODO remove?
-                -- if a.hp and other.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, other.id, a.id) then
-                --     deal_damage(a, other.dmg or 0, other)
-                -- end
-                -- touch item
-                if a.inventory and other.item then
-                    pick_up_item(a, other)
-                end
-                -- `a` knocks back `other`
-                if a.shape.knockback and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
-                    log.debug(a.name, "knock back", other.name, a.shape.knockback)
-                    local norm = (other.pos - a.pos):norm()
-                    other.vel = other.vel + norm * a.shape.knockback
-                end
-                -- level exit
-                local level_exit = other.level_exit
-                if a.player and level_exit then
-                    local _, current_level_idx = get_current_level(a)
-                    local next_level = current_level_idx + 1
-                    log.debug("player at alt", a.alt,"move from level", current_level_idx, "to", next_level)
-                    if next_level > #game.levels then
-                        add_level(level_exit)
+
+                -- collision on cooldown?
+                local shape_cd = a.shape.cd
+                if not shape_cd or cd.use(shape_cd.duration, cd.names.collision, a.id, other.id, shape_cd.id) then
+                    -- a deals dmg to other
+                    if other.hp and a.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, a.id, other.id) then
+                        deal_damage(other, a.dmg or 0, a)
                     end
-                    enter_level(next_level, a)
-                end
-                if a.shape.action then
-                    log.info("shape action", a.shape.action)
-                    events.actor.shape_hit.emit(a.shape.action, a, other)
+                    -- other deals dmg to a
+                    -- TODO remove?
+                    -- if a.hp and other.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, other.id, a.id) then
+                    --     deal_damage(a, other.dmg or 0, other)
+                    -- end
+                    -- touch item
+                    if a.inventory and other.item then
+                        pick_up_item(a, other)
+                    end
+                    -- `a` knocks back `other`
+                    if a.shape.knockback and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
+                        log.debug(a.name, "knock back", other.name, a.shape.knockback)
+                        local norm = (other.pos - a.pos):norm()
+                        local vec = norm * a.shape.knockback
+                        other.vel = other.vel + vec
+                        
+                        local cam = camera.get()
+                        cam.shake = 1
+
+                        events.actor.knocked_back.emit(a, other, vec)
+                    end
+                    -- level exit
+                    local level_exit = other.level_exit
+                    if a.player and level_exit then
+                        local _, current_level_idx = get_current_level(a)
+                        local next_level = current_level_idx + 1
+                        log.debug("player at alt", a.alt,"move from level", current_level_idx, "to", next_level)
+                        if next_level > #game.levels then
+                            add_level(level_exit)
+                        end
+                        enter_level(next_level, a)
+                    end
+                    if a.shape.action then
+                        log.debug("shape action", a.shape.action)
+                        events.actor.shape_hit.emit(a.shape.action, a, other)
+                    end
                 end
             end
         elseif target then
@@ -1193,7 +1205,7 @@ return {
             if a.cam_follow and a.pos then
                 listen_pos = a.pos
             else
-                listen_pos = camera.get_pos()
+                listen_pos = camera.get().pos
             end
 
             if listen_pos then

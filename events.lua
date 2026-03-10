@@ -54,6 +54,7 @@ M.actor = {
     current_level_changed = event('actor.current_level_changed'), ---@alias EvtActorCurrentLevelChanged fun(a:Actor)
     item_equipped = event('actor.item_equipped'), ---@alias EvtActorItemEquipped fun(a:Actor, item:Item)
     shape_hit = event('actor.shape_hit'), ---@alias EvtActorShapeHit fun(action:string, a:Actor, other:Actor)
+    knocked_back = event('actor.knocked_back'), ---@alias EvtActorKnockedBack fun(a:Actor, other:Actor, vec:Vector.lua)
 }
 
 M.status_effect = {
