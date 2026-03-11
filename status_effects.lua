@@ -2,10 +2,12 @@ local M = {}
 
 local input = require 'input'
 
----@alias StatusEffectName 'sleeping'|'stunned'|'invincible'
+---@alias StatusEffectName 'sleeping'|'stunned'|'invincible'|'slowed'
+---@alias ActorStat 'move_speed'
 
 ---@class StatusEffect
 ---@field apply? fun(a:Actor, time_left:number)
+---@field modify_stat? fun(a:Actor, stat:ActorStat, value:any):any
 ---@field update? fun(a:Actor, dt:number, time_left:number):number? return new time_left
 ---@field remove? fun(a:Actor)
 ---@field take_damage? fun(a:Actor, amt:number, src?:Actor):number? return new dmg amt
@@ -38,6 +40,24 @@ M.update = function (dt, a)
             status_effs[name] = time_left
         end
     end
+end
+
+---@generic V
+---@param a Actor
+---@param stat ActorStat
+---@param value V
+M.modify_stat = function (a, stat, value)
+    local status_effs = a.status_effects
+    if not status_effs then return value end
+
+    for name in pairs(status_effs) do
+        local t = M.effects[name]
+        if t.modify_stat then
+            value = t.modify_stat(a, stat, value)
+        end
+    end
+    
+    return value
 end
 
 ---@param a Actor
@@ -132,6 +152,12 @@ M.effects = {
             a.sleeping_strength = nil
         end
     },
+
+    slowed = {
+        modify_stat = function (a, stat, value)
+            
+        end
+    }
 }
 
 return M

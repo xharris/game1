@@ -47,6 +47,8 @@ function love.load()
 end
 
 function love.update(dt)
+    local orig_dt = dt
+    dt = dt * game.delta_mod
     input.update()
     for _, a in ipairs(api.actor.get_group('player')) do
         local inp = input.get(a.player)
@@ -64,7 +66,7 @@ function love.update(dt)
         state.update(dt)
     end
     api.update(dt)
-    tick.update(dt)
+    tick.update(orig_dt)
     animation.update(dt)
     timeline.update(dt)
 end

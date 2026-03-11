@@ -17,7 +17,7 @@ local G = {
     LOG_GAME_STATE_ON_ERR = true,
     LOG_GAME_STATE_ON_QUIT = false,
     DRAW_Z_ORDER = false,
-    DRAW_AIM_POSITION = false,
+    DRAW_AIM = false,
 
     -- camera
     CAMERA_ZOOM = 0.25,
@@ -30,10 +30,11 @@ local G = {
 
     -- curves
     CURVE = {
+        hp = {min=50, max=100},
         camera_zoom = {min=1, max=3},
         camera_shake_falloff = {min=3, max=8},
         camera_shake_intensity = {min=2, max=20},
-        knockback = {min=80, max=150},
+        knockback = {min=30, max=200},
     },
 
     -- cooldowns
@@ -43,7 +44,9 @@ local G = {
         take_damage = 3,
         knockback = 0.5,
         update_walkable = 3,
-        reset = 0.018
+        reset = 0.005,
+        -- default value
+        use_item = 1,
     },
 
     -- ai
@@ -75,7 +78,6 @@ local G = {
         castle = 'castle',
     },
 
-    HP = 10,
     PLAYER_ARM_DIST = 8,
     INF_TIME = -100,
     PLAYER_MAX_MOVE_SPEED = 120,
@@ -88,9 +90,11 @@ local G = {
 
     VIBRATE = {
         sm = 0.05,
-        md = 0.5,
+        md = 0.2,
         lg = 1.0,
     },
+
+    delta_mod = 1,
 
     ---@type Level[]
     levels = {},

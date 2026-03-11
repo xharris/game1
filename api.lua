@@ -158,6 +158,11 @@ local add_actor = function (a)
 end
 
 ---@param a Actor
+local get_move_speed = function (a)
+    return status_effects.modify_stat(a, 'move_speed', a.move_speed or 0)
+end
+
+---@param a Actor
 ---@param immediate? boolean
 local camera_follow = function (a, immediate)
     local cam_follow = a.cam_follow
@@ -172,8 +177,8 @@ local camera_follow = function (a, immediate)
     if a.alt then
         pos.y = pos.y - a.alt
     end
-    if cam_follow.move_dir_offset and a.move_dir and a.max_move_speed then
-        pos = pos + (a.move_dir * (a.max_move_speed / 2))
+    if cam_follow.move_dir_offset and a.move_dir and a.move_speed then
+        pos = pos + (a.move_dir * (a.move_speed / 2))
     end
     if cam_follow.aim_dir_offset and a.aim_dir then
         pos = pos + (a.aim_dir * 30)
@@ -220,15 +225,6 @@ local place_at_level_cell = function (cells, a, cell_idx)
         log.warn("no start tile found", a)
     end
 end
-
----@class ItemModule
----@field name string
----@field item fun():Item
----@field primary_hand? boolean hold in primary hand
----@field sprite? fun():Sprite
----@field equip? fun(a:Actor, item:Item)
----@field activate? fun(a:Actor, item:Item, hand?:Hand)
----@field drop? fun(a:Actor, item:Item) TODO fly in an arc away from player
 
 local load_item = function (name)
     ---@type ItemModule
@@ -696,15 +692,15 @@ local draw_actor = function (a, alt)
         rectangle("fill", -2, -2, 4, 4)
         pop()
     end
-    if game.DRAW_AIM_POSITION and a.aim_position then
+    if game.DRAW_AIM and a.aim_dir then
         -- aim position
-        pop = transform(a.aim_position.x, a.aim_position.y, 0, 1, 1, 0, 0)
+        pop = transform(a.aim_dir.x * 64, a.aim_dir.y * 64, 0, 1, 1, 0, 0)
         setColor(0,0,1,1)
         circle('fill', 0, 0, 12)
         pop()
     end
     -- aim dir
-    if game.DRAW_AIM_POSITION and a.aim_dir then
+    if game.DRAW_AIM and a.aim_dir then
         pop = transform(a.pos.x + a.aim_dir.x * 30, a.pos.y - alt + a.aim_dir.y * 30,
             0, a.scale and a.scale.x or 1, a.scale and a.scale.y or 1,
             0, 0)
@@ -734,7 +730,7 @@ local deal_damage = function (target, amt, src)
                 target.pos.x + target.shape.pos.x,
                 target.pos.y + target.shape.pos.y
             )
-            target.hp = game.HP
+            target.hp = math2.curve(game.CURVE.hp, 1)
         end
         remove_actor(target)
     end
@@ -782,32 +778,23 @@ local update = function (dt)
 
             local alt_pos = vec2(a.pos.x, a.pos.y - (a.alt or 0))
 
-            ---@type Vector.lua?
-            local aim_pos
-            if inp:getActiveDevice() == 'joy' then
-                -- joystick aim direction
-                local wx, wy = inp:get 'aim'
-                aim_pos = alt_pos + (a.move_dir * a.max_move_speed/2) + (vec2(wx, wy) * max(100, a.max_move_speed))
+            if a.aim_dir and not a.disable_aim then
+                if inp:getActiveDevice() == 'joy' then
+                    -- joystick aim direction
+                    local aim_dir = vec2(inp:get 'aim')
+                    if aim_dir:getmag() > 0 then
+                        a.aim_dir:set(aim_dir)
+                    end
 
-            else
-                -- mouse aim direction
-                local inside, mx, my = shove.mouseToViewport()
-                local wx, wy = camera.to_world(mx, my)
-                if inside then
-                    aim_pos = vec2(wx, wy)
-                end
-
-            end
-
-            if not a.disable_aim and aim_pos then
-                if not a.aim_position then
-                    a.aim_position = aim_pos
                 else
-                    a.aim_position.x = blend(a.aim_position.x, aim_pos.x, dt * 4)
-                    a.aim_position.y = blend(a.aim_position.y, aim_pos.y, dt * 4)
+                    -- mouse aim direction
+                    local inside, mx, my = shove.mouseToViewport()
+                    local wx, wy = camera.to_world(mx, my)
+                    if inside then
+                        local aim_pos = vec2(wx, wy)
+                        a.aim_dir:set((aim_pos - alt_pos):norm())
+                    end
                 end
-
-                a.aim_dir = (a.aim_position - alt_pos):norm()
             end
 
             -- use item
@@ -816,6 +803,9 @@ local update = function (dt)
                 local item_module = load_item(item.name)
                 if item_module and inp:down 'primary' and cd.use(item.cooldown or 1, cd.names.use_item, a.id, item.name) then
                     item_module.activate(a, item, a.hands and a.hands.right or nil)
+                end
+                if item_module and item_module.update then
+                    item_module.update(a, item, dt)
                 end
             end
 
@@ -836,11 +826,6 @@ local update = function (dt)
             end
         end
         camera_follow(a)
-
-        -- apply move_dir to velocity
-        if a.move_dir then
-            a.vel = steer(a.vel, a.move_dir, a.max_move_speed or 0, a.mass or 100, dt)
-        end
 
         -- face direction
         if a.aim_dir and a.aim_dir:getmag() > 0 and a.scale then
@@ -899,6 +884,13 @@ local update = function (dt)
 
         -- update other components
         status_effects.update(dt, a)
+
+        -- apply move_dir to velocity
+        if a.move_dir then
+
+            a.vel = steer(a.vel, a.move_dir, get_move_speed(a), a.mass or 100, dt)
+        end
+
         local players = get_group('player')
         render_level_cell.update(dt, a, players)
 
@@ -920,7 +912,7 @@ local update = function (dt)
 
                 -- collision on cooldown?
                 local shape_cd = a.shape.cd
-                if not shape_cd or cd.use(shape_cd.duration, cd.names.collision, a.id, other.id, shape_cd.id) then
+                if not shape_cd or cd.use(shape_cd.duration, cd.names.collision, other.id, shape_cd.id) then
                     -- a deals dmg to other
                     if other.hp and a.dmg and cd.use(game.CD.take_damage, cd.names.take_damage, a.id, other.id) then
                         deal_damage(other, a.dmg or 0, a)
@@ -935,9 +927,11 @@ local update = function (dt)
                         pick_up_item(a, other)
                     end
                     -- `a` knocks back `other`
-                    if a.shape.knockback ~= nil and other.vel and cd.use(game.CD.knockback, cd.names.knockback, a.id) then
+                    local knockback_key = a.shape.cd and a.shape.cd.id or a.id
+                    if a.shape.knockback ~= nil and other.vel and cd.use(game.INF_TIME, cd.names.knockback, other.id, knockback_key) then
                         log.debug(a.name, "knock back", other.name, a.shape.knockback)
-                        knock_back(other, other.pos - a.pos, a.shape.knockback)              
+                        local dir = a.aim_dir and a.aim_dir or other.pos - a.pos
+                        knock_back(other, dir, a.shape.knockback)
                         camera.shake() -- 0.2, a.shape.knockback)
                     end
                     -- level exit
@@ -1165,12 +1159,22 @@ return {
         add_to_inventory = add_to_inventory,
         equip_item = equip_item,
         pick_up_item = pick_up_item,
+        ---@param a Actor
+        ---@param name string
+        get_item = function (a, name)
+            for _, item in ipairs(a.inventory.items) do
+                if item.name == name then
+                    return item
+                end
+            end
+        end,
         status_effects = {
             apply = status_effects.apply,
             remove = status_effects.remove,
         },
         deal_damage = deal_damage,
         knock_back = knock_back,
+        get_move_speed = get_move_speed,
     },
     audio = {
         ---@param a Actor
@@ -1225,6 +1229,18 @@ return {
             log.debug('listener at', love.audio.getPosition())
 
             src:play()
+        end
+    },
+    effect = {
+        ---@param delta_mod any
+        ---@param duration any
+        set_delta_mod = function (delta_mod, duration)
+            local old_delta_mod = game.delta_mod or 1
+            game.delta_mod = delta_mod
+            tick.delay(function ()
+                -- reset
+                game.delta_mod = old_delta_mod
+            end, duration)
         end
     }
 }

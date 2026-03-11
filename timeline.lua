@@ -8,6 +8,7 @@ local ripairs = lume.ripairs
 ---@field delay? number
 ---@field duration? number nil means instant
 ---@field tick fun(t:number) t is [0,1] where 0 is start of step and 1 is end of step (`duration` reached)
+---@field ease? fun(v:number):number
 
 ---@class ActiveTimeline
 ---@field key string
@@ -21,6 +22,7 @@ local ripairs = lume.ripairs
 ---@field key string
 ---@field steps TimelineStep[]
 ---@field delta_mod? number
+---@field ease? fun(v:number):number
 
 M.lerp = lume.lerp
 
@@ -50,6 +52,9 @@ end
 
 M.update = function (dt)
     for i, active in ripairs(running) do
+        if active.opts.delta_mod then
+            dt = dt * active.opts.delta_mod
+        end
         if active.delay_timer and not active.delay_done then
             -- wait for delay
             
@@ -72,7 +77,13 @@ M.update = function (dt)
                 end
                 -- tick for duration
                 active.dt = active.dt + dt
-                step.tick(active.dt / step.duration)
+                local progress = active.dt / step.duration
+                if step.ease then
+                    progress = step.ease(progress)
+                elseif active.opts.ease then
+                    progress = active.opts.ease(progress)
+                end
+                step.tick(progress)
                 if active.dt > step.duration then
                     done = true
                 end

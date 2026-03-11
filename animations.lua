@@ -34,10 +34,16 @@ end
 M.hand_swing_up = function (a)
     local right = a.hands.right
 
+    ---@param v number
+    local ease_in = function (v)
+        return math2.ease(v, math2.EASE_OUT)
+    end
+
     ---@type RunOptions
     return {
         key = a.id..' hand swing up',
         delta_mod = a.delta_mod,
+        ease = ease_in,
         steps = {
             {tick=function (t)
                 -- lower arm
@@ -85,9 +91,10 @@ M.hand_swing_up = function (a)
 end
 
 ---@param a Actor
-M.hand_swing_down = function (a)
+M.hand_swing_down = function (a, delta_mod)
     local right = a.hands.right
 
+    ---@type RunOptions
     return {
         key = a.id..' hand swing up',
         delta_mod = a.delta_mod,

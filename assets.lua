@@ -15,10 +15,10 @@ M.hand_frames = {
 }
 
 M.sword = 'assets/sword.png'
-M.sword_rows_cols = vec2(6, 1)
+M.sword_rows_cols = vec2(8, 1)
 M.sword_frames = {
-    idle = {6},
-    swing = {1,2,3,4,5,6},
+    idle = {8},
+    swing = {1,2,3,4,5,6,7,8},
 }
 
 M.player = 'assets/player.png'

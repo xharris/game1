@@ -8,15 +8,24 @@ local tick = require 'lib.tick'
 local hitbox = require 'hitbox'
 local anims = require 'animations'
 local assets = require 'assets'
-local math2 = require 'lib.math2'
+local lerp = lume.lerp
+local min = math.min
 
-M.name = 'SWORD'
+M.name = 'sword'
 M.primary_hand = true
+
+local TIPPER = 'sword_tipper'
+local NORMAL = 'sword_normal'
+local ACTION_SWORD_HIT = 'sword_hit'
+local MAX_CHARGE_SPEED = 0.3
+local ULT_SPEED = 0.1
+local TIPPER_ULT_CHARGE = 15
+local NORMAL_ULT_CHARGE = 5
 
 M.item = function ()
     return {
-        name=M.name,
-        cooldown = 1,
+        name = M.name,
+        cooldown = game.CD.use_item,
     }
 end
 
@@ -35,33 +44,75 @@ M.sprite = function ()
     }
 end
 
+---@param item Item
+local get_speed = function (item)
+    local ult_progress = item.data.ult_charge / 100
+    return 1 / lerp(1, item.data.ult_active and ULT_SPEED or MAX_CHARGE_SPEED, ult_progress)
+end
+
 ---@type EvtActorShapeHit
 local on_actor_shape_hit = function (action, a, other)
     local owner = api.actor.by_id(a.owner)
-    if action == 'reset_auto_timer' and owner then
-        api.cd.reset(api.cd.names.use_item, owner.id, M.name)
+    if action == ACTION_SWORD_HIT and owner then
+        local item = api.actor.get_item(owner, M.name)
+
+
+        if item.data.ult_charge >= 100 and not item.data.ult_active then
+            -- activate ult
+            item.data.ult_active = true
+                
+            -- knock back nearby enemies
+            -- create circle at enemy position
+            -- attacks hit all enemies in circle
+            -- circle shrinks
+            -- attacking increases radius
+            -- no knockback?
+        end
+
+        if a.name == TIPPER then
+            item.data.ult_charge = min(100, item.data.ult_charge + TIPPER_ULT_CHARGE)
+        end
+        if a.name == NORMAL then
+            item.data.ult_charge = min(100, item.data.ult_charge + NORMAL_ULT_CHARGE)
+        end
+        log.info(a.name, "ult charge", item.data.ult_charge)
+
+        if item.data.ult_charge >= 100 and not item.data.ult_active then
+            api.effect.set_delta_mod(0.05, 0.3)
+            -- ult is ready animation
+            -- TODO 
+            -- bullet time 
+            -- glrowing sword
+            -- shiny
+        end
+
+        api.cd.set(game.CD.use_item / get_speed(item), api.cd.names.use_item, owner.id, item.name)
     end
 end
 
 M.equip = function (a, item)
+    item.data = {
+        ult_charge = 0,
+        ult_active = false,
+    }
     events.actor.shape_hit.connect(on_actor_shape_hit)
     -- play sound
     api.audio.play_from_actor(a, assets.sword_slice)
-    for _, b in ipairs(game.actors) do
-        local b_ref = b
-        -- slow everything down for a sec
-        b.delta_mod = game.DELTA_MOD.bullet_time
-        tick.delay(function ()
-            -- reset
-            b_ref.delta_mod = 1
-        end, 0.8)
-    end
+    api.effect.set_delta_mod(0.2, 0.1)
 end
 
 local i = 0
 M.activate = function (a, item, hand)
+    local speed = get_speed(item)
+    local knockback_amt = 1
+    local knockback_dir = a.aim_dir:rotate(math.rad(lerp(-30, 30, love.math.random())))
+
+    api.actor.knock_back(a, knockback_dir, knockback_amt)
+    log.info("activate")
+
     -- play swing animation
     if hand then
+        ---@type RunOptions[]
         local animations = {
             anims.hand_swing_down(a),
             anims.hand_swing_up(a),
@@ -71,13 +122,15 @@ M.activate = function (a, item, hand)
         idx = (idx - 1) % #animations + 1
         item._animation_idx = idx
         -- play animation
-        timeline.run(animations[idx])
+        local anim = animations[idx]
+        anim.delta_mod = speed
+        timeline.run(anim)
     end
 
     -- create hitbox(es) halfway through animation
-    i = i + 1
     tick.delay(function ()
-        local cd_id = 'sword_swing'..tostring(i)
+        i = i + 1
+        local cd_id = ACTION_SWORD_HIT..tostring(i)
         local aim_angle
         if a.aim_dir.x < 0 then
             aim_angle = a.aim_dir:heading() + math.rad(20)
@@ -89,7 +142,7 @@ M.activate = function (a, item, hand)
         hitbox.create{
             owner = a,
             pos = a.pos + vec2(8, 8),
-            size = vec2(15, 15),
+            size = vec2(18, 18),
             radial = {
                 from_angle = aim_angle-math.rad(80),
                 to_angle = aim_angle+math.rad(60),
@@ -97,13 +150,14 @@ M.activate = function (a, item, hand)
                 segments = 10,
             },
             each = function (h)
-                h.name = 'sword_tipper'
+                h.name = TIPPER
                 h.dmg = 10
-                h.shape.knockback = 0
-                h.shape.action = 'reset_auto_timer'
+                h.shape.action = ACTION_SWORD_HIT
+                h.shape.knockback = knockback_amt * 1.2
                 h.shape.cd = {id=cd_id, duration=game.INF_TIME}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
+                h.aim_dir = knockback_dir
                 api.actor.add(h)
             end
         }
@@ -119,18 +173,18 @@ M.activate = function (a, item, hand)
                 segments = 10,
             },
             each = function (h)
-                h.name = 'sword_normal'
+                h.name = NORMAL
                 h.dmg = 5
-                h.shape.knockback = 1
+                h.shape.action = ACTION_SWORD_HIT
+                h.shape.knockback = knockback_amt * 1.2
                 h.shape.cd = {id=cd_id, duration=game.INF_TIME}
                 -- h.shape.debug = true
                 h.remove_after = 0.2
+                h.aim_dir = knockback_dir
                 api.actor.add(h)
             end
         }
-
-        api.actor.knock_back(a, a.aim_dir, 0)
-    end, 0.4)
+    end, 0.4 / speed)
 end
 
 return M

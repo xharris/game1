@@ -26,6 +26,17 @@
 ---@field name string
 ---@field cooldown? number
 ---@field equipped? boolean
+---@field data? table
+
+---@class ItemModule
+---@field name string
+---@field item fun():Item
+---@field primary_hand? boolean hold in primary hand
+---@field sprite? fun():Sprite
+---@field equip? fun(a:Actor, item:Item)
+---@field activate? fun(a:Actor, item:Item, hand?:Hand)
+---@field drop? fun(a:Actor, item:Item) TODO fly in an arc away from player
+---@field update? fun(a:Actor, item:Item, dt:number)
 
 ---@alias ShapeTag 'wall'|'body'|'hit'|'area'|'ground'
 
@@ -83,7 +94,7 @@
 ---@field alt? number altitude/elevation
 ---@field alt_v? number alt velocity
 ---@field alt_0_walkable? boolean remove? (unused)
----@field max_move_speed? number
+---@field move_speed? number
 ---@field mass? number
 ---@field hp? number
 ---@field dmg? number deal damage on collision
