@@ -1222,8 +1222,10 @@ return {
             local src = audio.get_source(path, config)
 
             -- set position relative to camera
-            if src:getChannelCount() == 1 then
+            if game.POSITION_AUDIO and src:getChannelCount() == 1 then
                 src:setPosition(a.pos.x, a.pos.y, 0)
+            else
+                src:setPosition(0, 0, 0)
             end
 
             log.info('play', path, 'at', a.name, 'pos', {src:getPosition()})
@@ -1236,8 +1238,10 @@ return {
                 listen_pos = camera.get().pos
             end
 
-            if listen_pos then
+            if game.POSITION_AUDIO and listen_pos then
                 love.audio.setPosition(listen_pos.x, listen_pos.y, 0)
+            else
+                love.audio.setPosition(0, 0, 0)
             end
             log.debug('listener at', love.audio.getPosition())
 

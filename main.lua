@@ -50,6 +50,7 @@ end
 function love.update(dt)
     local orig_dt = dt
     dt = dt * game.delta_mod
+    game.time = game.time + dt
     input.update()
     for _, a in ipairs(api.actor.get_group('player')) do
         local inp = input.get(a.player)

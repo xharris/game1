@@ -1,7 +1,7 @@
 local M = {}
 
 ---@class AudioConfig
----@field volume 'sfx'|'music'
+---@field volume 'sfx'|'sfx_epic'|'music'
 ---@field pitch? number
 ---@field effect? string
 

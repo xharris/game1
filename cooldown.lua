@@ -1,6 +1,8 @@
 local M = {}
 
-local get_time = love.timer.getTime
+local get_time = function ()
+    return game.time
+end
 
 ---@enum cooldown_name
 M.names = {

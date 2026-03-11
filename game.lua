@@ -49,6 +49,15 @@ local G = {
         use_item = 1,
     },
 
+    -- audio
+    VOLUME = {
+        global = 0.5,
+        sfx = 0.8,
+        sfx_epic = 1.0,
+        music = 0.7,
+    },
+    POSITION_AUDIO = false,
+
     -- ai
 
     --- minimum distance until the ai moves onto the next waypoint in it's path
@@ -82,12 +91,6 @@ local G = {
     INF_TIME = -100,
     PLAYER_MAX_MOVE_SPEED = 120,
 
-    VOLUME = {
-        global = 0.5,
-        sfx = 1,
-        music = 0.8,
-    },
-
     VIBRATE = {
         sm = 0.05,
         md = 0.2,
@@ -95,6 +98,7 @@ local G = {
     },
 
     delta_mod = 1,
+    time = 0,
 
     ---@type Level[]
     levels = {},

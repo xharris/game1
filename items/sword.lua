@@ -58,20 +58,25 @@ local on_actor_shape_hit = function (action, a, other)
 
 
         if item.data.ult_charge >= 100 and not item.data.ult_active then
+            log.info("ult is activated")
             -- activate ult
             item.data.ult_active = true
 
+            -- knock back nearby enemies
+
+            -- sword breaks into many pieces
+
+            api.effect.set_delta_mod(0.05, 1)
             api.audio.play_from_actor(a, assets.sword_big_hit, {
-                volume='sfx',
+                volume='sfx_epic',
                 pitch=2.5,
                 effect='sword_ult_activate',
             })
-                
-            -- knock back nearby enemies
-            
-            -- sword breaks into many pieces
 
-            -- no knockback
+            -- TODO other stuff...
+            -- attacking makes sword fragment hit enemy in circle
+            -- no knockback / small hit-stun + small knockback
+            -- increase mass and/or lower move speed
         end
 
         if a.name == TIPPER then
@@ -80,15 +85,17 @@ local on_actor_shape_hit = function (action, a, other)
         if a.name == NORMAL then
             item.data.ult_charge = min(100, item.data.ult_charge + NORMAL_ULT_CHARGE)
         end
-        log.info(a.name, "ult charge", item.data.ult_charge)
 
         if item.data.ult_charge >= 100 and not item.data.ult_active then
-            api.effect.set_delta_mod(0.05, 0.3)
+            log.info("ult is ready")
+            api.effect.set_delta_mod(0.1, 0.2)
             -- ult is ready animation        
             -- TODO 
             -- bullet time 
             -- glrowing sword
             -- shiny
+        else
+            log.info(a.name, "ult charge", item.data.ult_charge)
         end
 
         api.cd.set(game.CD.use_item / get_speed(item), api.cd.names.use_item, owner.id, item.name)
@@ -115,7 +122,6 @@ M.activate = function (a, item, hand)
     local knockback_dir = a.aim_dir:rotate(math.rad(lerp(-30, 30, love.math.random())))
 
     api.actor.knock_back(a, knockback_dir, knockback_amt)
-    log.info("activate")
 
     -- play swing animation
     if hand then
