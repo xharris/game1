@@ -117,6 +117,7 @@ M.add_exits = function (level_idx, level)
         sprite = {
             frame = 1,
             rows_cols = vec2(1, 1),
+            frames = {1},
             off = vec2(32, 32),
             path = assets.stairs,
         },

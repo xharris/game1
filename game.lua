@@ -84,8 +84,8 @@ local G = {
 
     VOLUME = {
         global = 0.5,
-        SFX = 1,
-        MUSIC = 0.8,
+        sfx = 1,
+        music = 0.8,
     },
 
     VIBRATE = {
@@ -122,6 +122,10 @@ G.LEVELS = {
     {
         name = 'forest1',
         theme = G.THEME.forest,
+        audio_config = {
+            volume = 'sfx',
+            effect = 'forest',
+        },
         cells = {
             1, 1, 1, 1, 1,
             1, 0, 1, 0, 1,

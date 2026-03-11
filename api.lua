@@ -399,6 +399,16 @@ local get_level_alt = function (level)
     return level * game.LEVEL_ALT
 end
 
+---@param name string
+---@return NextLevel?
+local get_next_level_config = function (name)
+    for _, l in ipairs(game.LEVELS) do
+        if l.name == name then
+            return l
+        end
+    end
+end
+
 ---@param level_idx number
 ---@param a Actor
 ---@param cell_filters? ActorFilter[] for cell placement
@@ -424,8 +434,6 @@ local enter_level = function (level_idx, a, cell_filters)
         
         if a.group == 'player' then
             cell_filters = cell_filters or {filters.cell_of_type(game.CELL.entrance)}
-            -- set audio effects for level theme
-            audio.set_global_effects{'theme_'..level.theme}
         end
 
         if a.group == 'item' then
@@ -447,6 +455,7 @@ local enter_level = function (level_idx, a, cell_filters)
         a.current_level = level_idx
         events.actor.current_level_changed.emit(a)
     end
+
     events.level.entered.emit(level_idx, a)
 end
 
@@ -1177,12 +1186,13 @@ return {
         get_move_speed = get_move_speed,
     },
     audio = {
+        get_source = audio.get_source,
+
+        ---Get audio source and configure it to play from the actor's position
         ---@param a Actor
         ---@param path string
-        play_from_actor = function (a, path)
-            local effects = {}
-            local filter
-
+        ---@param config AudioConfig
+        play_from_actor = function (a, path, config)
             -- check if anyone can hear it
             local in_hearing_range = a.current_level == nil
             if a.current_level then
@@ -1197,23 +1207,26 @@ return {
                 return
             end
 
-            -- get actor level theme effect
-            local level = a.current_level and game.levels[a.current_level] or nil
-            if level then
-                lume.push(effects, 'theme_'..level.theme)
+            -- use level audio effects if none given
+            if not config.effect or #config.effect == 0 then
+                local level = get_current_level(a)
+                if level then
+                    local level_config = get_next_level_config(level.name)
+                    local level_audio = level_config and level_config.audio_config or nil
+                    if level_audio then
+                        config = level_audio
+                    end
+                end
             end
 
-            local src = audio.get_source(path, effects, filter)
-
-            -- adjust volume
-            src:setVolume(game.VOLUME.SFX)
+            local src = audio.get_source(path, config)
 
             -- set position relative to camera
             if src:getChannelCount() == 1 then
                 src:setPosition(a.pos.x, a.pos.y, 0)
             end
 
-            log.debug('play', path, 'at', a.name, 'pos', {src:getPosition()}, 'effects', effects, 'filter', filter)
+            log.info('play', path, 'at', a.name, 'pos', {src:getPosition()})
 
             local listen_pos
             
@@ -1229,6 +1242,7 @@ return {
             log.debug('listener at', love.audio.getPosition())
 
             src:play()
+            return src
         end
     },
     effect = {

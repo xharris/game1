@@ -30,6 +30,7 @@ local camera = require 'camera'
 local state
 
 function love.load()
+    log.info("running on", love.system.getOS())
     game.DISPLAY = math.min(game.DISPLAY, love.window.getDisplayCount())
     local dw, dh = love.window.getDesktopDimensions(game.DISPLAY)
     log.info('resolution', dw * game.GAME_SCALE, 'x', dh * game.GAME_SCALE)

@@ -48,6 +48,22 @@ M.dummy_frames = {
 -- audio
 
 M.sword_slice = 'assets/dragon-studio-sword-slice.ogg'
+M.sword_big_hit = 'assets/sword-big-hit.ogg'
+
+M.audio_effects = {
+    forest = {
+        {
+            type="reverb",volume=1,density=1,diffusion=.3,gain=.3162,highgain=.0224,
+            decaytime=1.49,decayhighratio=.54,earlygain=.0525,earlydelay=.162,
+            lategain=.7682,latedelay=.088,airabsorption=.9943,roomrolloff=0,highlimit=true,
+        }
+    },
+    sword_ult_activate = {
+        {type="reverb",volume=1,density=.021157024793388,diffusion=1,gain=.31768595041322,highgain=.61123966942149,decaytime=2.1015062065612,decayhighratio=1.2572727272727,earlygain=.9717652892562,earlydelay=.0055785123966942,lategain=1.1314049586777,latedelay=.076165289256198,airabsorption=.9943,roomrolloff=0,highlimit=true},
+        {type="echo",volume=.2217,delay=.06997,tapdelay=.03414,damping=.1669,feedback=.2986,spread=-.01352},
+        {type="distortion",volume=1,edge=.16708402152485,gain=.21281048537482,lowcut=4855.0824600151,center=17567.804423655,bandwidth=3610.6661878574},
+    },
+}
 
 -- TODO add _frames/_frame for other sprites
 

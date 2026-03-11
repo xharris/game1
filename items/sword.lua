@@ -19,8 +19,8 @@ local NORMAL = 'sword_normal'
 local ACTION_SWORD_HIT = 'sword_hit'
 local MAX_CHARGE_SPEED = 0.3
 local ULT_SPEED = 0.1
-local TIPPER_ULT_CHARGE = 15
-local NORMAL_ULT_CHARGE = 5
+local TIPPER_ULT_CHARGE = 25-- 15
+local NORMAL_ULT_CHARGE = 25-- 5
 
 M.item = function ()
     return {
@@ -60,13 +60,18 @@ local on_actor_shape_hit = function (action, a, other)
         if item.data.ult_charge >= 100 and not item.data.ult_active then
             -- activate ult
             item.data.ult_active = true
+
+            api.audio.play_from_actor(a, assets.sword_big_hit, {
+                volume='sfx',
+                pitch=2.5,
+                effect='sword_ult_activate',
+            })
                 
             -- knock back nearby enemies
-            -- create circle at enemy position
-            -- attacks hit all enemies in circle
-            -- circle shrinks
-            -- attacking increases radius
-            -- no knockback?
+            
+            -- sword breaks into many pieces
+
+            -- no knockback
         end
 
         if a.name == TIPPER then
@@ -79,7 +84,7 @@ local on_actor_shape_hit = function (action, a, other)
 
         if item.data.ult_charge >= 100 and not item.data.ult_active then
             api.effect.set_delta_mod(0.05, 0.3)
-            -- ult is ready animation
+            -- ult is ready animation        
             -- TODO 
             -- bullet time 
             -- glrowing sword
@@ -97,7 +102,9 @@ M.equip = function (a, item)
     }
     events.actor.shape_hit.connect(on_actor_shape_hit)
     -- play sound
-    api.audio.play_from_actor(a, assets.sword_slice)
+
+    -- api.audio.from_actor(a, assets.sword_slice)
+    api.audio.play_from_actor(a, assets.sword_slice, { volume='sfx' })
     api.effect.set_delta_mod(0.2, 0.1)
 end
 

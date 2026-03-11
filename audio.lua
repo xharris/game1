@@ -1,17 +1,11 @@
 local M = {}
 
-local E = {}
+---@class AudioConfig
+---@field volume 'sfx'|'music'
+---@field pitch? number
+---@field effect? string
 
-E.theme_forest = {
-    effect = {
-        type="reverb",volume=1,density=1,diffusion=.3,gain=.3162,highgain=.0224,
-        decaytime=1.49,decayhighratio=.54,earlygain=.0525,earlydelay=.162,
-        lategain=.7682,latedelay=.088,airabsorption=.9943,roomrolloff=0,highlimit=true,
-    },
-}
-
----@type string[]
-local global_effects = {}
+local assets = require 'assets'
 
 local sources = {}
 
@@ -33,60 +27,55 @@ local to_mono = function (path)
     return mono
 end
 
+---@type table<string, string[]>
+local effect_types_by_name = {}
+
+---@param name string
+---@param settings table[]
+M.install_effect = function (name, settings)
+    effect_types_by_name[name] = {}
+    for _, s in ipairs(settings) do
+        local fullname = name..'_'..s.type
+        lume.push(effect_types_by_name[name], fullname)
+        log.info("install", fullname)
+        love.audio.setEffect(fullname, s)
+    end
+end
+
 ---@param path string
----@param effects? string[]
----@param filter? string
-M.get_source = function (path, effects, filter)
-    effects = effects or {}
-    local key = path..'|'..table.concat(global_effects, '+')..'|'..table.concat(effects, '+')..'|'..(filter or '')
+---@param config AudioConfig
+M.get_source = function (path, config)
+    local key = path..'|'..(config.effect or 'none')..'|'..config.volume
     local src = sources[key]
     if not src then
-        log.debug('create audio source', key)
+        log.info('create audio source', key)
         src = love.audio.newSource(path, 'static')
         if src:getChannelCount() > 1 then
             log.warn("mono audio is preferred", path)
         end
         -- add effects
         if love.audio.isEffectsSupported() then
-            for _, name in ipairs(global_effects) do
-                src:setEffect(name, true)
-            end
-            for _, name in ipairs(effects) do
+            local names = effect_types_by_name[config.effect] or {}
+            for _, name in ipairs(names) do
                 src:setEffect(name, true)
             end
         end
-        -- set filter
-        if filter and E[filter] and E[filter].filter then
-            src:setFilter(E[filter].filter)
-        end
+        -- other config options
+        src:setPitch(config.pitch or 1)
+        src:setVolume(game.VOLUME[config.volume] or 1)
+        sources[key] = src
     end
     return src
 end
 
 M.load = function ()
-    if love.audio.isEffectsSupported() then
-        -- load effects
-        for name, settings in pairs(E) do
-            if settings.effect then
-                log.debug('add audio effect', name)
-                love.audio.setEffect(name, settings.effect)
-            end
+    if not love.audio.isEffectsSupported() then
+        log.warn("audio effects not supported")
+    else
+        for name, settings in pairs(assets.audio_effects) do
+            M.install_effect(name, settings)
         end
     end
-end
-
----@param name string
----@return table? effect
-M.get_effect = function (name)
-    if not E[name] or not E[name].effect or not love.audio.isEffectsSupported() then
-        return
-    end
-    return E[name].effect
-end
-
----@param names string[]
-M.set_global_effects = function (names)
-    global_effects = names
 end
 
 return M

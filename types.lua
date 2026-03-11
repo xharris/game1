@@ -12,6 +12,7 @@
 ---@class NextLevel
 ---@field name string
 ---@field theme level_theme
+---@field audio_config? AudioConfig default audio config for sounds played in this level
 ---@field cells cell_type[]
 ---@field width number `tiles` width
 ---@field items string[]
